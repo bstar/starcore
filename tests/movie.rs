@@ -289,6 +289,84 @@ fn hdr_shadows_preserve_reference_luminance_in_playback_and_poster() {
 }
 
 #[test]
+fn hdr_saturated_highlights_keep_their_hue_in_playback_poster_and_proxy() {
+    use std::io::Write;
+    use std::process::Stdio;
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("hdr-colors.mkv");
+    // 1000-nit RGB titles and neutral highlights, encoded losslessly as PQ.
+    // Tone mapping must compress brightness without bleaching colored titles.
+    let patches = [
+        [10.0_f32, 0.0, 0.0],
+        [0.0, 10.0, 0.0],
+        [0.0, 0.0, 10.0],
+        [10.0, 10.0, 10.0],
+    ];
+    let mut encoder = Command::new("ffmpeg")
+        .args(["-v", "error", "-f", "rawvideo", "-pixel_format", "gbrpf32le",
+            "-video_size", "128x32", "-framerate", "1", "-i", "pipe:0",
+            "-vf", "zscale=tin=linear:pin=2020:min=gbr:rin=full:t=smpte2084:p=2020:m=2020_ncl:r=limited:npl=100,format=yuv444p10le",
+            "-frames:v", "1", "-c:v", "ffv1", "-color_primaries", "bt2020",
+            "-color_trc", "smpte2084", "-colorspace", "bt2020nc", "-y"])
+        .arg(&path).stdin(Stdio::piped()).spawn().unwrap();
+    let mut data = Vec::new();
+    for channel in [1, 2, 0] {
+        for _ in 0..32 {
+            for x in 0..128 {
+                data.extend_from_slice(&patches[x / 32][channel].to_le_bytes());
+            }
+        }
+    }
+    encoder.stdin.take().unwrap().write_all(&data).unwrap();
+    assert!(encoder.wait().unwrap().success());
+    let options = PlaybackOptions {
+        audio: Selection::Off,
+        subtitle: Selection::Off,
+    };
+    let player = Player::file_with_options(path.clone(), 0.0, options.clone()).unwrap();
+    let frame = player.frames.recv_timeout(Duration::from_secs(5)).unwrap();
+    let poster = starkit::media::poster(&path, Arc::new(AtomicBool::new(false))).unwrap();
+    let proxy_path = root.path().join("proxy.ts");
+    proxy::encode_selected_to_fit(
+        &path,
+        0.0,
+        Quality::High,
+        (128, 32),
+        std::fs::File::create(&proxy_path).unwrap(),
+        Arc::new(AtomicBool::new(false)),
+        options.clone(),
+    )
+    .unwrap();
+    let proxied = Player::file_with_options(proxy_path, 0.0, options).unwrap();
+    let proxy_frame = proxied.frames.recv_timeout(Duration::from_secs(5)).unwrap();
+    for (name, pixels) in [
+        ("playback", &frame.pixels),
+        ("poster", &poster.pixels),
+        ("proxy", &proxy_frame.pixels),
+    ] {
+        for channel in 0..3 {
+            let pixel = pixels
+                .get_pixel(
+                    (channel as u32 * 2 + 1) * pixels.width() / 8,
+                    pixels.height() / 2,
+                )
+                .0;
+            assert!(
+                pixel[channel] > 180 && (0..3).filter(|c| *c != channel).all(|c| pixel[c] < 80),
+                "{name} bleached HDR primary {channel}: {pixel:?}"
+            );
+        }
+        let white = pixels
+            .get_pixel(pixels.width() * 7 / 8, pixels.height() / 2)
+            .0;
+        assert!(
+            white[..3].iter().all(|value| *value > 180),
+            "{name} lost neutral highlights: {white:?}"
+        );
+    }
+}
+
+#[test]
 fn decoded_colors_match_the_source_pixel_format() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("red.mp4");
