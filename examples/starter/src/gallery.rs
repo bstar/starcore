@@ -1,5 +1,5 @@
-//! The application describes content and commands; KIT supplies both presentations.
-use starkit::{
+//! The application describes content and commands; CORE supplies both presentations.
+use starcore::{
     theme::{Theme, ThemeFile, BUILTINS},
     ui::{
         command::{self, Command, Registry},
@@ -9,7 +9,7 @@ use starkit::{
 
 pub struct Gallery {
     name: String,
-    selected: Option<starkit::ui::Id>,
+    selected: Option<starcore::ui::Id>,
     playing: bool,
     volume: u16,
     modal: bool,
@@ -24,7 +24,7 @@ pub struct Gallery {
 impl Default for Gallery {
     fn default() -> Self {
         Self {
-            theme_id: starkit::theme::DEFAULT_ID.into(),
+            theme_id: starcore::theme::DEFAULT_ID.into(),
             choosing_theme: false,
             name: String::new(),
             selected: Some("track-1".into()),
@@ -46,8 +46,8 @@ impl Gallery {
             vec![
                 Node::button("play", "play"),
                 Node::button("settings", "settings"),
-                Node::button("help", "kit.help"),
-                Node::button("quit", "kit.quit"),
+                Node::button("help", "core.help"),
+                Node::button("quit", "core.quit"),
             ],
         )
         .height(Size::fixed(1))
@@ -133,7 +133,7 @@ impl Gallery {
             view.modal = Some(
                 Node::pane(
                     "dialog",
-                    Heading::new("KIT application contract"),
+                    Heading::new("CORE application contract"),
                     Node::column(
                         "dialog-content",
                         vec![
@@ -205,7 +205,7 @@ impl Gallery {
                     self.status = if self.playing { "Playing" } else { "Paused" }.into();
                 }
                 "settings" => self.editing = true,
-                "kit.help" => {
+                "core.help" => {
                     self.editing = false;
                     self.modal = true;
                 }
@@ -214,8 +214,8 @@ impl Gallery {
                     self.choosing_theme = false;
                     self.editing = false;
                 }
-                "kit.theme" => self.choosing_theme = true,
-                "kit.quit" => self.quit = true,
+                "core.theme" => self.choosing_theme = true,
+                "core.quit" => self.quit = true,
                 _ => {}
             },
             Event::Adjusted { id, value, .. } if id.0 == "volume" => {
@@ -278,14 +278,14 @@ pub fn cell_text(id: &str, width: u16, height: u16) -> anyhow::Result<String> {
             while x < width {
                 let symbol = buffer[(x, y)].symbol();
                 line.push_str(symbol);
-                x += starkit::wrap::width_of(symbol).max(1);
+                x += starcore::wrap::width_of(symbol).max(1);
             }
             line
         })
         .collect::<Vec<_>>()
         .join("\n"))
 }
-impl starkit::ui::application::Application for Gallery {
+impl starcore::ui::application::Application for Gallery {
     fn view(&self) -> View {
         self.view()
     }
@@ -304,16 +304,16 @@ impl starkit::ui::application::Application for Gallery {
 }
 #[cfg(feature = "native")]
 pub fn native(id: &str) -> anyhow::Result<()> {
-    let paths = starkit::paths::Paths::new(
-        "starkit-starter",
-        "STAR_KIT_STARTER_DIR",
-        "STAR_KIT_STARTER_CONFIG_DIR",
+    let paths = starcore::paths::Paths::new(
+        "starcore-starter",
+        "STAR_CORE_STARTER_DIR",
+        "STAR_CORE_STARTER_CONFIG_DIR",
     );
-    let _log = starkit::logging::init(&paths, true)?;
-    use starkit::terminal_graphics::client::{
+    let _log = starcore::logging::init(&paths, true)?;
+    use starcore::terminal_graphics::client::{
         self, Launch, PresentationOptions, PresentationPreference,
     };
-    use starkit::{terminal_graphics::application::Application, ui::application::Host};
+    use starcore::{terminal_graphics::application::Application, ui::application::Host};
     let args: Vec<_> = std::env::args().skip(1).collect();
     let option = |name: &str| {
         args.windows(2)
@@ -328,10 +328,10 @@ pub fn native(id: &str) -> anyhow::Result<()> {
         return client::run_with_preference(
             Launch {
                 executable: option("--remote-executable")
-                    .unwrap_or_else(|| "starkit-starter".into()),
+                    .unwrap_or_else(|| "starcore-starter".into()),
                 host: Some(host),
                 ssh_config: option("--ssh-config").map(Into::into),
-                session: option("--session").unwrap_or_else(|| "kit-gallery".into()),
+                session: option("--session").unwrap_or_else(|| "core-gallery".into()),
                 directory: None,
                 attach_only: args.iter().any(|arg| arg == "--attach-only"),
                 play: None,
@@ -343,7 +343,7 @@ pub fn native(id: &str) -> anyhow::Result<()> {
         );
     }
     let id = id.to_string();
-    Application::new("kit-gallery")?
+    Application::new("core-gallery")?
         .with_presentation(preference)
         .run(move |domain| {
             let selected = domain
@@ -363,13 +363,13 @@ pub fn native(id: &str) -> anyhow::Result<()> {
 #[cfg(feature = "native")]
 pub fn png(id: &str, path: &str) -> anyhow::Result<()> {
     let mut ui = runtime(id)?;
-    let viewport = starkit::terminal_graphics::Viewport::default();
+    let viewport = starcore::terminal_graphics::Viewport::default();
     let scene = ui.render_scene(viewport, false)?;
-    starkit::terminal_graphics::renderer::render_reference(&scene)?.save(path)?;
+    starcore::terminal_graphics::renderer::render_reference(&scene)?.save(path)?;
     Ok(())
 }
 pub fn cells(id: &str) -> anyhow::Result<()> {
-    starkit::ui::application::Host::new(
+    starcore::ui::application::Host::new(
         Gallery {
             theme_id: id.into(),
             ..Gallery::default()
@@ -379,7 +379,7 @@ pub fn cells(id: &str) -> anyhow::Result<()> {
     .run_cells()
 }
 
-impl starkit::ui::content::Content for Gallery {}
+impl starcore::ui::content::Content for Gallery {}
 
 #[cfg(test)]
 mod tests {
@@ -387,14 +387,14 @@ mod tests {
 
     #[test]
     fn all_dialogs_render_over_the_application_in_both_presentations() {
-        for command in ["kit.help", "settings", "kit.theme"] {
+        for command in ["core.help", "settings", "core.theme"] {
             let mut gallery = Gallery::default();
             gallery.event(Event::Command(command.into()));
             for (width, height) in [(700, 640), (336, 136), (12, 12)] {
                 let mut ui = Runtime::new(
                     gallery.view(),
                     Registry::new(gallery.commands()).unwrap(),
-                    theme(starkit::theme::DEFAULT_ID).unwrap(),
+                    theme(starcore::theme::DEFAULT_ID).unwrap(),
                 )
                 .unwrap();
                 ui.render_surface(Viewport::graphics(width, height))
@@ -403,7 +403,7 @@ mod tests {
                     .unwrap();
                 #[cfg(feature = "native")]
                 ui.render_scene(
-                    starkit::terminal_graphics::Viewport {
+                    starcore::terminal_graphics::Viewport {
                         width: u32::from(width),
                         height: u32::from(height),
                         columns: (width / 8).max(1),

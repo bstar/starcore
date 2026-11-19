@@ -604,7 +604,7 @@ impl Runtime {
                 || matches!(command.scope, Scope::View(_))
                 || matches!(
                     command.id.0.as_str(),
-                    "kit.repaint" | "kit.help" | "kit.presentation"
+                    "core.repaint" | "core.help" | "core.presentation"
                 );
             if allowed {
                 return vec![Event::Command(command.id.clone())];

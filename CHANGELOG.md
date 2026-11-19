@@ -8,6 +8,21 @@ On 0.x, an API change is a minor bump and a fix is a patch.
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-11-19
+
+### Changed
+
+- The library is renamed from STAR/KIT (`starkit`) to STAR/CORE (`starcore`),
+  and the repository moves to `github.com/bstar/starcore`. Applications change
+  the dependency key to `starcore`, point `git` at the new repository, and
+  replace `starkit::` paths with `starcore::`. Log filters use `starcore=`.
+- Environment variables use the `STAR_CORE_` / `STARCORE_` prefixes, built-in
+  commands use the `core.` namespace (`core.quit`, `core.theme`, ...), and
+  runtime directories are `starcore-<uid>`. The frontend/host handshake is now
+  `STAR_CORE_BRIDGE` / `STAR_CORE_CLIENT`, so frontends and hosts from before
+  0.25 cannot attach to each other; restart running sessions after upgrading.
+- The Swift package is `apple/StarCore` with the `StarCore` library product.
+
 ## [0.24.0] - 2026-11-18
 
 First tagged release since 0.8.1. It collects the 0.9 to 0.24 development

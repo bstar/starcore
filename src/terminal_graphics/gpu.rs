@@ -322,7 +322,7 @@ impl Gpu {
             info.name
         );
         let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
-            label: Some("STAR/KIT GPU"),
+            label: Some("STAR/CORE GPU"),
             required_limits: wgpu::Limits::default(),
             ..Default::default()
         }))
@@ -388,7 +388,7 @@ impl Gpu {
         {
             let stride = (width * 4).div_ceil(256) * 256;
             let texture = self.device.create_texture(&wgpu::TextureDescriptor {
-                label: Some("STAR/KIT RGBA scene"),
+                label: Some("STAR/CORE RGBA scene"),
                 size: wgpu::Extent3d {
                     width,
                     height,
@@ -402,7 +402,7 @@ impl Gpu {
                 view_formats: &[],
             });
             let readback = self.device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("STAR/KIT bounded readback"),
+                label: Some("STAR/CORE bounded readback"),
                 size: u64::from(stride) * u64::from(height),
                 usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
                 mapped_at_creation: false,

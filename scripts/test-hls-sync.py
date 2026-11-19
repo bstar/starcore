@@ -65,7 +65,7 @@ with tempfile.TemporaryDirectory(prefix='star-sync-proof-') as temp:
             master=get('/v1/hls/'+id+'/master.m3u8?token='+token).decode()
             variants=[line for line in master.splitlines() if line.startswith('/v1/')];assert len(variants)>=2
             def cache_status():
-                endpoint=next((runtime/'starkit-streaming').glob('*.ctl'))
+                endpoint=next((runtime/'starcore-streaming').glob('*.ctl'))
                 with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as client:
                     client.settimeout(2);client.connect(str(endpoint));client.sendall(b'{"version":1,"op":"status"}\n')
                     data=bytearray()

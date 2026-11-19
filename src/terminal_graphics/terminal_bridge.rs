@@ -26,7 +26,7 @@ impl Drop for Attachment {
         let _ = emit(&self.nonce, "stop", None);
         // Kitty replies asynchronously, including when a host is hot-reloaded.
         // Keep raw input ownership until that reply is consumed, otherwise its
-        // newline executes STAR_KIT_BRIDGE as a command in the waiting shell.
+        // newline executes STAR_CORE_BRIDGE as a command in the waiting shell.
         if self.started && !self.gone.load(Ordering::Acquire) {
             let tty = self.tty.take().or_else(|| {
                 OpenOptions::new()
@@ -43,7 +43,7 @@ impl Drop for Attachment {
     }
 }
 fn wait_for_close(tty: &mut File, nonce: &str, timeout: Duration) -> io::Result<bool> {
-    let expected = format!("STAR_KIT_BRIDGE {nonce} gone");
+    let expected = format!("STAR_CORE_BRIDGE {nonce} gone");
     let deadline = Instant::now() + timeout;
     let mut lines = Lines::default();
     while Instant::now() < deadline {
@@ -62,7 +62,7 @@ fn emit(nonce: &str, op: &str, data: Option<&str>) -> Result<()> {
     let mut out = io::stdout().lock();
     write!(
         out,
-        "\x1b]1337;SetUserVar=star_kit={}\x1b\\",
+        "\x1b]1337;SetUserVar=star_core={}\x1b\\",
         STANDARD.encode(value)
     )?;
     out.flush()?;
@@ -98,7 +98,7 @@ pub fn probe() -> Result<Option<Attachment>> {
     emit(&attachment.nonce, "probe", None)?;
     let deadline = Instant::now() + Duration::from_secs(2);
     let mut input = Lines::default();
-    let expected = format!("STAR_KIT_BRIDGE {} ready", attachment.nonce);
+    let expected = format!("STAR_CORE_BRIDGE {} ready", attachment.nonce);
     while Instant::now() < deadline {
         match input.next(attachment.tty.as_mut().unwrap())? {
             Some(line) if line == expected => return Ok(Some(attachment)),
@@ -177,7 +177,7 @@ impl Attachment {
         let detected_cells = initial_cells.clone();
         let gone = self.gone.clone();
         let input = std::thread::spawn(move || {
-            let prefix = format!("STAR_KIT_BRIDGE {nonce} ");
+            let prefix = format!("STAR_CORE_BRIDGE {nonce} ");
             let mut lines = Lines::default();
             let result = (|| -> Result<()> {
                 while !stopped.load(Ordering::Acquire) {
@@ -263,9 +263,11 @@ mod tests {
         input.set_nonblocking(true).unwrap();
         let mut tty = File::from(OwnedFd::from(input));
         let sender = std::thread::spawn(move || {
-            terminal.write_all(b"STAR_KIT_BRIDGE other gone\n").unwrap();
+            terminal
+                .write_all(b"STAR_CORE_BRIDGE other gone\n")
+                .unwrap();
             std::thread::sleep(Duration::from_millis(30));
-            terminal.write_all(b"STAR_KIT_BRIDGE test ").unwrap();
+            terminal.write_all(b"STAR_CORE_BRIDGE test ").unwrap();
             std::thread::sleep(Duration::from_millis(30));
             terminal.write_all(b"gone\nprintf shell-input\n").unwrap();
             terminal

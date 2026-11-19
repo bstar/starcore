@@ -63,12 +63,12 @@ mod tests {
 
     #[test]
     fn the_defaults_are_the_ones_written_down() {
-        let agent = agent("starkit-test/0.1");
+        let agent = agent("starcore-test/0.1");
         let config = agent.config();
         assert!(
             matches!(
                 config.user_agent(),
-                ureq::config::AutoHeaderValue::Provided(name) if **name == *"starkit-test/0.1"
+                ureq::config::AutoHeaderValue::Provided(name) if **name == *"starcore-test/0.1"
             ),
             "the caller's name is not the one that would go out: {:?}",
             config.user_agent()
@@ -83,7 +83,10 @@ mod tests {
     fn the_builder_leaves_the_https_rule_to_the_caller() {
         // The one thing a caller may need to say differently, and the reason
         // the builder is public at all.
-        let agent: ureq::Agent = builder("starkit-test/0.1").https_only(false).build().into();
+        let agent: ureq::Agent = builder("starcore-test/0.1")
+            .https_only(false)
+            .build()
+            .into();
         assert!(!agent.config().https_only());
         // Everything else is still the shared default.
         assert_eq!(agent.config().max_redirects(), MAX_REDIRECTS);

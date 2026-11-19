@@ -1,6 +1,6 @@
 //! Run interactively, inspect without a terminal, or measure the solver:
 //! cargo run --example responsive-panes --no-default-features -- --inspect 80x24
-use starkit::{
+use starcore::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind, MouseButton, MouseEventKind},
     panes::{Focus, Node, Overflow, Size, ViewportRule, Visibility, Wrap},
     ratatui::{
@@ -77,7 +77,7 @@ fn main() -> anyhow::Result<()> {
         );
         return Ok(());
     }
-    let mut terminal = starkit::term::init()?;
+    let mut terminal = starcore::term::init()?;
     let result = (|| -> anyhow::Result<()> {
         let mut hidden = false;
         let mut focus = Focus::new(Some("workspace"));
@@ -121,6 +121,6 @@ fn main() -> anyhow::Result<()> {
         }
         Ok(())
     })();
-    let restored = starkit::term::restore();
+    let restored = starcore::term::restore();
     result.and(restored)
 }

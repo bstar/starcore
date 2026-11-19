@@ -190,7 +190,7 @@ impl Capabilities {
             streamed_frames: false,
             lossless_frames: true,
             native_terminal_cells: true,
-            native_font_millipoints: std::env::var("STAR_KIT_FONT_MILLIPOINTS")
+            native_font_millipoints: std::env::var("STAR_CORE_FONT_MILLIPOINTS")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .filter(|size| (6000..=32000).contains(size)),
@@ -324,7 +324,7 @@ mod tests {
             streamed_frames: false,
             lossless_frames: true,
             native_terminal_cells: true,
-            native_font_millipoints: std::env::var("STAR_KIT_FONT_MILLIPOINTS")
+            native_font_millipoints: std::env::var("STAR_CORE_FONT_MILLIPOINTS")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .filter(|size| (6000..=32000).contains(size)),

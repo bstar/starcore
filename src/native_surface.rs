@@ -83,7 +83,7 @@ pub enum Primitive {
     },
 }
 impl Primitive {
-    /// Presentation adapters move bounds through KIT so new primitive variants
+    /// Presentation adapters move bounds through CORE so new primitive variants
     /// do not require exhaustive geometry matches in every application.
     pub fn rect_mut(&mut self) -> &mut PixelRect {
         match self {

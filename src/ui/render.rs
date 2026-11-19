@@ -484,7 +484,7 @@ impl Runtime {
         } else {
             &style.colors.dim
         };
-        let action = format!("kit.ui:{}", p.id.0);
+        let action = format!("core.ui:{}", p.id.0);
         match &p.widget {
             Widget::Row | Widget::Column => {}
             Widget::Pane(heading) => {

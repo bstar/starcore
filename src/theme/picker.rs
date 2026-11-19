@@ -1,4 +1,4 @@
-//! Reusable theme chooser. KIT owns filtering, navigation and presentation;
+//! Reusable theme chooser. CORE owns filtering, navigation and presentation;
 //! applications apply and persist the selected id. Moving the highlight never
 //! changes a theme, so Escape is always a cancellation.
 use super::{Registry, Resolve, Theme};
@@ -24,7 +24,7 @@ struct Entry {
     palette: crate::native_surface::style::Palette,
 }
 
-/// Built-ins, desktop and application-local themes from any KIT registry.
+/// Built-ins, desktop and application-local themes from any CORE registry.
 /// Construct on opening to pick up newly imported files. It never saves files
 /// or owns an application's modal lifecycle.
 pub struct Picker {
@@ -203,7 +203,7 @@ impl Picker {
             }
         }
     }
-    /// Bridge KIT's named session keys without requiring a graphics feature.
+    /// Bridge CORE's named session keys without requiring a graphics feature.
     pub fn handle_named(&mut self, code: &str, modifiers: u8) -> Outcome {
         let key = if let Some(c) = code.strip_prefix("char:").and_then(|s| s.chars().next()) {
             KeyCode::Char(c)
@@ -229,7 +229,7 @@ impl Picker {
             KeyModifiers::from_bits_truncate(modifiers),
         ))
     }
-    /// A bounded physical-pixel dialog using KIT's default chrome. Mount after
+    /// A bounded physical-pixel dialog using CORE's default chrome. Mount after
     /// a Menu marker; the caller controls centering and modal input routing.
     pub fn native(&self, style: &Style, width: u16, height: u16) -> Surface {
         let mut s = style.modal_panel(width, height, "THEMES");
@@ -366,9 +366,9 @@ mod tests {
     use super::*;
     fn picker() -> Picker {
         let registry = Registry::<Theme>::new(crate::paths::Paths::new(
-            "starkit-picker-test",
-            "STARKIT_PICKER_TEST_DIR",
-            "STARKIT_PICKER_TEST_CONFIG_DIR",
+            "starcore-picker-test",
+            "STARCORE_PICKER_TEST_DIR",
+            "STARCORE_PICKER_TEST_CONFIG_DIR",
         ));
         Picker::new(&registry, "kanagawa")
     }
@@ -438,9 +438,9 @@ mod tests {
         p.pointer_cell(area, 8, 8, false, Some(true));
         let mut buffer = Buffer::empty(area);
         let registry = Registry::<Theme>::new(crate::paths::Paths::new(
-            "starkit-picker-test",
-            "STARKIT_PICKER_TEST_DIR",
-            "STARKIT_PICKER_TEST_CONFIG_DIR",
+            "starcore-picker-test",
+            "STARCORE_PICKER_TEST_DIR",
+            "STARCORE_PICKER_TEST_CONFIG_DIR",
         ));
         p.render_cell(area, &mut buffer, &registry.default_theme());
         let result = p.pointer_cell(area, area.x + 2, area.y + 2, true, None);
@@ -468,9 +468,9 @@ mod tests {
             }
         }
         let registry = Registry::<Theme>::new(crate::paths::Paths::new(
-            "starkit-picker-test",
-            "STARKIT_PICKER_TEST_DIR",
-            "STARKIT_PICKER_TEST_CONFIG_DIR",
+            "starcore-picker-test",
+            "STARCORE_PICKER_TEST_DIR",
+            "STARCORE_PICKER_TEST_CONFIG_DIR",
         ));
         for (w, h) in [(1, 1), (10, 3), (60, 20)] {
             let area = Rect::new(0, 0, w, h);

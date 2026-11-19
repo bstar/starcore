@@ -41,7 +41,7 @@ impl Frontend {
         Ok(Self {
             layers: HashMap::new(),
             root: tempfile::Builder::new()
-                .prefix("starkit-canvas-")
+                .prefix("starcore-canvas-")
                 .tempdir()?,
             terminal_files: true,
             resizer: fast_image_resize::Resizer::new(),

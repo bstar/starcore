@@ -24,7 +24,7 @@ enum Action {
 impl Window {
     pub fn new() -> Result<Self> {
         use std::os::unix::fs::PermissionsExt;
-        let root = std::env::temp_dir().join(format!("star-kit-window-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("star-core-window-{}", std::process::id()));
         std::fs::create_dir(&root)?;
         std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o700))?;
         let path = root.join("fullscreen.py");

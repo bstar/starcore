@@ -53,7 +53,7 @@ fn env_var(app: &str) -> String {
 /// the binary being debugged is the worst kind of quiet.
 fn default_filter(app: &str, verbose: bool) -> String {
     let level = if verbose { "debug" } else { "info" };
-    format!("{app}={level},starkit={level}")
+    format!("{app}={level},starcore={level}")
 }
 
 #[cfg(test)]
@@ -75,11 +75,11 @@ mod tests {
     fn the_default_filter_covers_this_crate_too() {
         assert_eq!(
             default_filter("staramp", false),
-            "staramp=info,starkit=info"
+            "staramp=info,starcore=info"
         );
         assert_eq!(
             default_filter("starcord", true),
-            "starcord=debug,starkit=debug"
+            "starcord=debug,starcore=debug"
         );
     }
 

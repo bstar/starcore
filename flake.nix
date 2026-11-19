@@ -1,5 +1,5 @@
 {
-  description = "starkit — the terminal-UI foundation shared by staramp and starcord";
+  description = "starcore — the terminal-UI foundation shared by staramp and starcord";
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-unstable";
@@ -39,7 +39,7 @@
         # turns on is exactly the one that rots, so the flake build is the
         # place that always has every one of them on.
         packages.default = pkgs.rustPlatform.buildRustPackage {
-          pname = "starkit";
+          pname = "starcore";
           version = cargoToml.package.version;
           src = ./.;
           cargoLock.lockFile = ./Cargo.lock;
@@ -56,7 +56,7 @@
 
           meta = with pkgs.lib; {
             description = "The terminal-UI foundation shared by staramp and starcord";
-            homepage = "https://github.com/bstar/starkit";
+            homepage = "https://github.com/bstar/starcore";
             license = licenses.mit;
             platforms = platforms.linux ++ platforms.darwin;
           };
@@ -104,7 +104,7 @@
             ${pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
               export VK_DRIVER_FILES="$(python3 -c 'import glob; print(":".join(glob.glob("${pkgs.mesa}/share/vulkan/icd.d/*.json")))')"
             ''}
-            echo "starkit devshell · rustc $(rustc --version | cut -d' ' -f2)"
+            echo "starcore devshell · rustc $(rustc --version | cut -d' ' -f2)"
           '';
         };
       });

@@ -1,4 +1,4 @@
-//! Adapter from the application UI contract to KIT's persistent local/SSH host.
+//! Adapter from the application UI contract to CORE's persistent local/SSH host.
 use super::{
     command::{Command, Registry},
     Event, Frame, Runtime, View,
@@ -15,11 +15,11 @@ use crate::{
     },
 };
 
-/// Application state and domain work. KIT owns standard UI interaction and
+/// Application state and domain work. CORE owns standard UI interaction and
 /// presentation. Return true from `tick` only when visible state changed.
 pub trait Application: super::content::Content {
     fn view(&self) -> View;
-    /// Opt into same-session executable updates. KIT checks only while the app
+    /// Opt into same-session executable updates. CORE checks only while the app
     /// explicitly permits replacement; jobs must remain guarded by the app.
     fn live_updates(&self) -> bool {
         false
@@ -57,7 +57,7 @@ pub trait Application: super::content::Content {
         false
     }
     /// Intercept domain drags in the resolved frame's coordinate system.
-    /// Return false to keep KIT's normal focus, capture and controls.
+    /// Return false to keep CORE's normal focus, capture and controls.
     fn intercept_mouse(&mut self, _event: MouseEvent) -> bool {
         false
     }
@@ -217,13 +217,13 @@ impl<A: Application> Host<A> {
         }
         for event in events {
             if let Event::Command(id) = &event {
-                if id.0 == "kit.repaint" {
+                if id.0 == "core.repaint" {
                     self.repaint_requested = true;
                     self.ui.invalidate();
                     continue;
                 }
                 #[cfg(all(feature = "terminal-graphics", unix))]
-                if id.0 == "kit.presentation" {
+                if id.0 == "core.presentation" {
                     self.presentation_requested = true;
                     continue;
                 }
@@ -255,7 +255,7 @@ impl<A: Application> Host<A> {
 impl<A: Application> Host<A> {
     /// Cell-only applications use the same state/command contract without
     /// linking a rasterizer, codecs or audio devices. Terminal ownership and
-    /// repaint recovery stay in KIT.
+    /// repaint recovery stay in CORE.
     pub fn mouse(&mut self, mouse: MouseEvent) -> Vec<Event> {
         if self.app.intercept_mouse(mouse) {
             if matches!(mouse.kind, MouseEventKind::Up(_)) {

@@ -1,6 +1,6 @@
 # STAR native chrome
 
-Original STAR/AMP Classic Rack panel artwork, provided by STAR/KIT under its
+Original STAR/AMP Classic Rack panel artwork, provided by STAR/CORE under its
 MIT license. No proprietary Winamp artwork or fonts are included.
 
 The editable panel, rigid panel and inset well masters live in `source/`.

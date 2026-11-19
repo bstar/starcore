@@ -211,9 +211,9 @@ mod tests {
     /// the built-ins.
     fn registry() -> Registry<Theme> {
         Registry::new(Paths::new(
-            "starkit-test",
-            "STARKIT_TEST_DIR",
-            "STARKIT_TEST_CONFIG_DIR",
+            "starcore-test",
+            "STARCORE_TEST_DIR",
+            "STARCORE_TEST_CONFIG_DIR",
         ))
     }
 
@@ -282,11 +282,11 @@ mod tests {
     /// that only moves an analyzer colour shows up there and not here.
     ///
     /// Regenerate deliberately, after reading the diff:
-    /// `STARKIT_UPDATE_GOLDEN=1 cargo test every_builtin_resolves_as_recorded`.
+    /// `STARCORE_UPDATE_GOLDEN=1 cargo test every_builtin_resolves_as_recorded`.
     #[test]
     fn every_builtin_resolves_as_recorded() {
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata/golden");
-        let update = std::env::var_os("STARKIT_UPDATE_GOLDEN").is_some_and(|v| !v.is_empty());
+        let update = std::env::var_os("STARCORE_UPDATE_GOLDEN").is_some_and(|v| !v.is_empty());
         if update {
             std::fs::create_dir_all(&dir).expect("the golden directory has to be writable");
         }
@@ -306,7 +306,7 @@ mod tests {
 
             let want = std::fs::read_to_string(&path).unwrap_or_else(|e| {
                 panic!(
-                    "{}: {e} -- regenerate with STARKIT_UPDATE_GOLDEN=1",
+                    "{}: {e} -- regenerate with STARCORE_UPDATE_GOLDEN=1",
                     path.display()
                 )
             });

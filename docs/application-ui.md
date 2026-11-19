@@ -10,7 +10,7 @@ focus, text editing, selection, pointer capture, layout and invalidation. The
 application handles `Event`s and updates its own domain state.
 
 ```rust
-use starkit::ui::{command::{Command, Registry}, Heading, Node, Runtime, View};
+use starcore::ui::{command::{Command, Registry}, Heading, Node, Runtime, View};
 
 let commands = Registry::new(vec![Command::new("save", "Save").shortcut("ctrl+s")])?;
 let view = View::new(Node::pane("document", Heading::new("Document"),
@@ -25,7 +25,7 @@ let mut ui = Runtime::new(view, commands, theme)?;
 independent starter demonstrates the complete construction and event loop.
 Run `scripts/check-starter.py --candidate --artifacts target/ui-gallery` through
 the flake to compile it outside the workspace and retain its pixel/cell gallery.
-Add `--release` for a preview at `target/external-starter/release/starkit-starter`;
+Add `--release` for a preview at `target/external-starter/release/starcore-starter`;
 launch it with `--native` and use Alt+T for themes and F9 for cells/graphics.
 The starter also optimizes dependencies in development so its debug preview
 remains interactive.
@@ -33,7 +33,7 @@ remains interactive.
 Crossterm 0.29.0 has a mouse/cursor coordinate underflow. Until an upstream
 release includes the fix, application roots must retain the starter's pinned
 `[patch.crates-io]` entry. Cargo does not inherit dependency patches. This keeps
-KIT and Ratatui using the same corrected parser.
+CORE and Ratatui using the same corrected parser.
 
 ## Components and geometry
 
@@ -162,7 +162,7 @@ or local file path from the host. Opener startup is asynchronous; up to eight
 workers/processes remain tracked for nonblocking reaping. Busy and unavailable
 frontends return typed errors. Success confirms dispatch to the opener, not a
 loaded page. A still-running opener is acknowledged after two seconds and
-reaped later; KIT never terminates a browser on disconnect or quit.
+reaped later; CORE never terminates a browser on disconnect or quit.
 
 Only the actual desktop frontend advertises this service. An unbridged SSH
 shell does not advertise it, even if the host has an opener installed. Legacy
@@ -172,12 +172,12 @@ variants. This service does not require codec or sound-device libraries.
 ## Specialized content
 
 A `Widget::Custom` reserves a bounded slot and declares its fallback and content
-revision. `Content::cells` receives a local buffer that KIT copies into that
+revision. `Content::cells` receives a local buffer that CORE copies into that
 slot. `Content::native` returns an independently mounted surface with exactly
 the slot's pixel dimensions; its physical font or editor-grid hints are
 preserved. Neither callback may replace the shell or own terminal modes.
 
-`Content::canvas` names an existing bounded live stream. KIT constructs the
+`Content::canvas` names an existing bounded live stream. CORE constructs the
 `ContentView` used by rendering and embedded input. Source pixels never enter
 scene JSON. Native content appears below modal chrome. Missing cell content
 uses the declared fallback; applications disable actions that require absent

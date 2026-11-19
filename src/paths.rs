@@ -12,7 +12,7 @@
 //! `STARAMP_DIR` would be a surprise nobody asked for:
 //!
 //! ```
-//! use starkit::paths::Paths;
+//! use starcore::paths::Paths;
 //! pub const PATHS: Paths = Paths::new("staramp", "STARAMP_DIR", "STARAMP_CONFIG_DIR");
 //! ```
 //!

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check an isolated tracked consumer tree against a candidate KIT checkout.
+"""Check an isolated tracked consumer tree against a candidate CORE checkout.
 
 Version requirements are explicitly updated in the disposable copy: this is a
 migration check, not proof that a breaking candidate satisfies an older release.
@@ -20,7 +20,7 @@ import tomllib
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("consumer", type=Path)
-    parser.add_argument("--kit", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--core", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--cargo", nargs=argparse.REMAINDER,
                         help="Run another Cargo command in the disposable candidate tree, e.g. build --release --offline")
     # Preserve Cargo's own `--` separator (e.g. strict Clippy flags). argparse
@@ -33,13 +33,13 @@ def main():
     args = parser.parse_args(argv)
     if cargo is not None:
         args.cargo = cargo
-    consumer, kit = args.consumer.resolve(), args.kit.resolve()
-    version = tomllib.loads((kit / "Cargo.toml").read_text())["package"]["version"]
-    for label, repo in (("consumer", consumer), ("KIT", kit)):
+    consumer, core = args.consumer.resolve(), args.core.resolve()
+    version = tomllib.loads((core / "Cargo.toml").read_text())["package"]["version"]
+    for label, repo in (("consumer", consumer), ("CORE", core)):
         revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
         print(f"{label}: {repo} @ {revision}", flush=True)
     tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=consumer).split(b"\0")
-    with tempfile.TemporaryDirectory(prefix="starkit-consumer-") as directory:
+    with tempfile.TemporaryDirectory(prefix="starcore-consumer-") as directory:
         tree = Path(directory)
         manifests = []
         for raw in tracked:
@@ -56,22 +56,22 @@ def main():
         replacements = 0
         for manifest in manifests:
             text = manifest.read_text()
-            # STAR consumers declare KIT as an inline dependency. Fail rather
+            # STAR consumers declare CORE as an inline dependency. Fail rather
             # than silently skipping a future manifest layout we do not know.
             def candidate(match):
                 nonlocal replacements
                 replacements += 1
                 return re.sub(r'version\s*=\s*"[^"]*"', f'version = "{version}"', match[0], count=1)
-            text = re.sub(r'(?m)^starkit\s*=\s*\{[^}]*\}', candidate, text)
+            text = re.sub(r'(?m)^starcore\s*=\s*\{[^}]*\}', candidate, text)
             manifest.write_text(text)
         if not replacements:
-            raise SystemExit("No inline starkit dependency found in consumer")
+            raise SystemExit("No inline starcore dependency found in consumer")
         # JSON quoting is valid for the TOML string inside Cargo's structured
         # --config argument; no shell evaluates these arguments.
         import json
-        patch = f'patch."https://github.com/bstar/starkit".starkit.path={json.dumps(str(kit))}'
+        patch = f'patch."https://github.com/bstar/starcore".starcore.path={json.dumps(str(core))}'
         environment = dict(os.environ)
-        environment.setdefault("CARGO_TARGET_DIR", str(consumer / "target" / "kit-compat"))
+        environment.setdefault("CARGO_TARGET_DIR", str(consumer / "target" / "core-compat"))
         command = args.cargo or ["check", "--workspace", "--all-targets", "--all-features"]
         if command[0] == "test":
             # A shared target may reuse a binary from a removed disposable

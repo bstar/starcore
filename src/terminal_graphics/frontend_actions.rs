@@ -201,7 +201,7 @@ impl Frontend {
             return failure(Error::Busy);
         }
         let launcher = self.launcher.clone();
-        let worker = crate::worker::Worker::spawn("kit-url-opener", move |context| {
+        let worker = crate::worker::Worker::spawn("core-url-opener", move |context| {
             if context.cancelled() {
                 return Err("Cancelled".into());
             }

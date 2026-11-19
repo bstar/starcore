@@ -2,7 +2,7 @@
 //!
 //! STAR/AMP, STAR/FOLD, STAR/CORD and STAR/WIRE exercise the shared foundation.
 //! The framework is being prepared for public use; APIs remain versioned 0.x.
-//! Applications retain their domain models while KIT owns presentation,
+//! Applications retain their domain models while CORE owns presentation,
 //! terminal capabilities, shared interaction and media transport.
 //!
 //! ## One copy of ratatui

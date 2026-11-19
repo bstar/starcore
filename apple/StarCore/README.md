@@ -1,6 +1,6 @@
-# STAR/KIT Apple transport — experimental 0.1
+# STAR/CORE Apple transport — experimental 0.1
 
-Swift package for native Apple clients of KIT's existing streaming protocol.
+Swift package for native Apple clients of CORE's existing streaming protocol.
 Supports tvOS 17, iOS 16 and macOS 13 or later. The Rust crate and its public APIs
 are unchanged. This is a new, separately versioned Swift package.
 

@@ -15,5 +15,5 @@ __pycache__/
 /examples/starter/target
 
 # Native Apple package compiler output
-apple/StarKit/.build/
-apple/StarKit/.swiftpm/
+apple/StarCore/.build/
+apple/StarCore/.swiftpm/

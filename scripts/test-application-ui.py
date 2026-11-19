@@ -28,7 +28,7 @@ parser.add_argument('--display-server', choices=['wayland', 'x11'], default='way
 args = parser.parse_args()
 output = Path(args.output).resolve()
 output.mkdir(parents=True, exist_ok=True)
-with tempfile.TemporaryDirectory(prefix='kit-ui-proof-') as temporary:
+with tempfile.TemporaryDirectory(prefix='core-ui-proof-') as temporary:
     private = Path(temporary)
     runtime = private / 'runtime'
     runtime.mkdir(mode=0o700)
@@ -37,9 +37,9 @@ with tempfile.TemporaryDirectory(prefix='kit-ui-proof-') as temporary:
            'XDG_CACHE_HOME': str(private / 'cache'),
            'XDG_DATA_HOME': str(private / 'data'), 'STAR_GRAPHICS_SYSTEM_FONTS': '0',
            'STAR_GRAPHICS_RENDERER': 'cpu',
-           'STAR_KIT_STARTER_DIR': str(output / 'profile')}
+           'STAR_CORE_STARTER_DIR': str(output / 'profile')}
     env.pop('NO_COLOR', None)
-    env.pop('STAR_KIT_ASCII', None)
+    env.pop('STAR_CORE_ASCII', None)
     # This child owns a fresh terminal, independently of the agent's enclosing
     # SSH/multiplexer session. Inherited flags would disable the native probe.
     for key in ('TMUX', 'TMUX_PANE', 'STY', 'SSH_CONNECTION', 'SSH_TTY'):
@@ -59,7 +59,7 @@ def handle_result(args, result, target_window_id, boss):
     child = subprocess.Popen([args.kitty, '--config', '/dev/null', '--listen-on', address,
                               '-o', 'allow_remote_control=yes', '-o', 'remember_window_size=no', '-o', f'linux_display_server={args.display_server}',
                               '-o', f'initial_window_width={args.window_width}', '-o', f'initial_window_height={args.window_height}',
-                              '--title', 'STAR-KIT-UI-PROOF', *startup.command(str(Path(args.binary).resolve()), '--native')],
+                              '--title', 'STAR-CORE-UI-PROOF', *startup.command(str(Path(args.binary).resolve()), '--native')],
                              env=env, stdout=log, stderr=log)
 
     def rc(*command):
@@ -190,7 +190,7 @@ def handle_result(args, result, target_window_id, boss):
         previous_theme = stable('theme-dialog')
         latencies = []
         deliveries = []
-        application_log = output / 'profile/cache/starkit-starter.log'
+        application_log = output / 'profile/cache/starcore-starter.log'
         for index in range(4):
             log_offset = len(application_log.read_text())
             started = time.monotonic()
@@ -297,7 +297,7 @@ def handle_result(args, result, target_window_id, boss):
         print(json.dumps(report, sort_keys=True))
     finally:
         # A failed proof must not leave its persistent private controller alive.
-        for path in runtime.glob('starkit-kit-gallery/*.sock'):
+        for path in runtime.glob('starcore-core-gallery/*.sock'):
             try:
                 with socket.socket(socket.AF_UNIX) as connection:
                     connection.settimeout(1)

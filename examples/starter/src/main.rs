@@ -1,7 +1,7 @@
 //! Independent public consumer: one application tree, cell and graphical views.
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use starkit::{
+use starcore::{
     diagnostics::{Action, Replay},
     panes::{Node, Overflow, Size, Wrap},
     presentation::{Environment, Observed, Profile, Tier},
@@ -42,7 +42,7 @@ fn main() -> Result<()> {
         .windows(2)
         .find(|pair| pair[0] == "--theme")
         .map(|pair| pair[1].as_str())
-        .unwrap_or(starkit::theme::DEFAULT_ID);
+        .unwrap_or(starcore::theme::DEFAULT_ID);
     #[cfg(not(feature = "native"))]
     if args.first().is_some_and(|arg| {
         matches!(

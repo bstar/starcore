@@ -4,10 +4,10 @@ Status: prototype. No application migration or installed-player replacement.
 
 ## Ownership
 
-KIT owns nine-slice composition, sprite placement, bitmap-font metrics, bounds,
+CORE owns nine-slice composition, sprite placement, bitmap-font metrics, bounds,
 cache budgets, scale rules, theme-mask operations and interaction geometry.
 AMP owns the Classic artwork, reference geometry and player state/actions.
-FOLD and other tools are later consumers; no music semantics enter KIT.
+FOLD and other tools are later consumers; no music semantics enter CORE.
 
 ## Coordinate contract
 

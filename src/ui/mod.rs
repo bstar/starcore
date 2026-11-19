@@ -1,4 +1,4 @@
-//! Application presentation owned by KIT.
+//! Application presentation owned by CORE.
 //!
 //! Build a [`View`] from application state, install it in [`Runtime`], and route
 //! input through the runtime. One immutable [`Frame`] supplies drawing and hit
@@ -101,7 +101,7 @@ impl Item {
     }
 }
 
-/// All standard chrome and control semantics are interpreted by KIT.
+/// All standard chrome and control semantics are interpreted by CORE.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Widget {
     Row,
@@ -175,7 +175,7 @@ pub struct Node {
     pub icon_size: u16,
     /// Subtle alternating rows for dense data lists.
     pub striped: bool,
-    /// Modal menu origin in viewport units; KIT clamps it to the visible area.
+    /// Modal menu origin in viewport units; CORE clamps it to the visible area.
     pub popup_position: Option<(u16, u16)>,
 }
 impl Node {

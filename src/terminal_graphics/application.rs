@@ -62,12 +62,12 @@ impl Application {
             .map(PathBuf::from)
             .unwrap_or_else(|| {
                 std::env::temp_dir()
-                    .join(format!("starkit-{}", rustix::process::geteuid().as_raw()))
+                    .join(format!("starcore-{}", rustix::process::geteuid().as_raw()))
             });
         Ok(Self {
             name: name.into(),
             presentation: None,
-            root: runtime.join(format!("starkit-{name}")),
+            root: runtime.join(format!("starcore-{name}")),
         })
     }
     /// Frontend-local presentation preference. The host never interprets this

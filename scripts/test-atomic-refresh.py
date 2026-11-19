@@ -22,7 +22,7 @@ frames = a.frames.resolve()
 output = a.output.resolve()
 output.mkdir(parents=True, exist_ok=True)
 viewport = json.loads((frames / 'viewport.json').read_text())
-with tempfile.TemporaryDirectory(prefix='kit-atomic-refresh-') as directory:
+with tempfile.TemporaryDirectory(prefix='core-atomic-refresh-') as directory:
     private = Path(directory)
     env = dict(os.environ)
     for name in ('TMUX', 'STY', 'SSH_CONNECTION', 'SSH_TTY'):
@@ -63,7 +63,7 @@ wait('quit')
     child = subprocess.Popen([a.kitty, '--config', '/dev/null', '--listen-on', address,
         '-o', 'allow_remote_control=yes', '-o', f'linux_display_server={a.display_server}',
         '-o', 'remember_window_size=no', '-o', f'initial_window_width={viewport["columns"]}c',
-        '-o', f'initial_window_height={viewport["rows"]}c', '--title', 'STAR-KIT-ATOMIC-REFRESH-PROOF',
+        '-o', f'initial_window_height={viewport["rows"]}c', '--title', 'STAR-CORE-ATOMIC-REFRESH-PROOF',
         *startup.command(sys.executable, str(writer), str(private), str(frames))],
         env=env, stdout=log, stderr=log, start_new_session=True)
     def rc(*args):

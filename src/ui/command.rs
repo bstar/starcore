@@ -56,18 +56,18 @@ impl Command {
 /// Common command identifiers and defaults. Apps implement their domain effects.
 pub fn standard() -> Vec<Command> {
     [
-        ("kit.help", "Help", "F1"),
-        ("kit.theme", "Theme…", "alt+t"),
-        ("kit.presentation", "Cells / Graphics", "F9"),
-        ("kit.repaint", "Repaint", "ctrl+l"),
-        ("kit.quit", "Quit", "ctrl+q"),
+        ("core.help", "Help", "F1"),
+        ("core.theme", "Theme…", "alt+t"),
+        ("core.presentation", "Cells / Graphics", "F9"),
+        ("core.repaint", "Repaint", "ctrl+l"),
+        ("core.quit", "Quit", "ctrl+q"),
     ]
     .into_iter()
     .map(|(id, label, key)| {
         Command::new(id, label)
             .shortcut(key)
             .group("Application")
-            .enabled(id != "kit.presentation" || cfg!(all(feature = "terminal-graphics", unix)))
+            .enabled(id != "core.presentation" || cfg!(all(feature = "terminal-graphics", unix)))
     })
     .collect()
 }

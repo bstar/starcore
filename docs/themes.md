@@ -74,23 +74,23 @@ theme by holding one:
 
 ```rust
 pub struct Theme {
-    core: starkit::theme::Theme,
+    core: starcore::theme::Theme,
     pub vis_ramp: [Rgb; 16],
     // ...
 }
 
 impl Deref for Theme {
-    type Target = starkit::theme::Theme;
+    type Target = starcore::theme::Theme;
     fn deref(&self) -> &Self::Target { &self.core }
 }
 
-impl starkit::theme::Resolve for Theme {
+impl starcore::theme::Resolve for Theme {
     fn resolve(f: &ThemeFile) -> Self {
-        let core = starkit::theme::Theme::resolve(f);
+        let core = starcore::theme::Theme::resolve(f);
         let vis: VisColors = f.table("vis").unwrap_or_default();
         // derive the rest from core.bg, core.accent, f.base16, ...
     }
-    fn core(&self) -> &starkit::theme::Theme { &self.core }
+    fn core(&self) -> &starcore::theme::Theme { &self.core }
 }
 ```
 
@@ -141,7 +141,7 @@ resolvers; built-ins, `system` and user-imported themes use the existing lookup.
 Construct it when opening the dialog, so newly imported files appear.
 
 ```rust
-use starkit::{paths::Paths, theme::{Registry, Theme, picker::{Picker, Outcome}}};
+use starcore::{paths::Paths, theme::{Registry, Theme, picker::{Picker, Outcome}}};
 let registry = Registry::<Theme>::new(Paths::new("my-app", "MY_APP_DIR", "MY_APP_CONFIG_DIR"));
 let mut picker = Picker::new(&registry, "kanagawa");
 picker.paste("nord");

@@ -15,7 +15,7 @@ cached images. Transparent regions remain holes for native terminal content.
 its synthetic wire fixture through the flake:
 
 ```sh
-STAR_KIT_REFRESH_FIXTURE="$PWD/target/atomic-refresh-fixture" \
+STAR_CORE_REFRESH_FIXTURE="$PWD/target/atomic-refresh-fixture" \
   cargo test --features terminal-graphics --lib slow_uploads_keep_the_previous_frame_visible_until_the_whole_swap
 python3 scripts/test-atomic-refresh.py --kitty PATH --kitten PATH \
   --frames target/atomic-refresh-fixture --output target/atomic-refresh-proof

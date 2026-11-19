@@ -1,6 +1,6 @@
 # Contributing
 
-STAR/KIT is becoming a public terminal application framework, exercised by
+STAR/CORE is becoming a public terminal application framework, exercised by
 STAR/AMP, STAR/FOLD, STAR/CORD and STAR/WIRE. Propose shared APIs with concrete
 consumer behavior, cell and graphical fallbacks, and a way to verify cost.
 Application-specific models and product rules stay in the applications.
@@ -56,7 +56,7 @@ item. `scripts/check-consumer.py` checks a disposable copy of a consumer against
 this checkout, leaving the application's manifest and lockfile untouched:
 
 ```sh
-nix develop -c python3 scripts/check-consumer.py ../starfold --kit .
+nix develop -c python3 scripts/check-consumer.py ../starfold --core .
 ```
 
 Run it from the consumer's devshell when its own native dependencies are needed.

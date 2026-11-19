@@ -1,6 +1,6 @@
 # Pictures in a terminal
 
-`starkit::graphics` is the part of this crate that is not really about drawing.
+`starcore::graphics` is the part of this crate that is not really about drawing.
 Putting an image on a terminal is four decisions — can this terminal do it,
 how big is a cell, what has already been encoded, and what happens when the
 answer is no — and only the last of them is a drawing problem.
@@ -13,7 +13,7 @@ application owns the keyboard:
 
 ```rust
 let graphics = Graphics::probe_if_tty(Mode::parse(&cfg.ui.graphics));  // first
-let mut term = starkit::term::init()?;                                 // then
+let mut term = starcore::term::init()?;                                 // then
 ```
 
 Afterwards, the reply arrives interleaved with whatever the user is typing:

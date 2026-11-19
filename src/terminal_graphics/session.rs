@@ -1294,7 +1294,7 @@ mod tests {
     }
     #[test]
     fn socket_names_cannot_escape_private_directory() {
-        assert!(socket_path(Path::new("/tmp/kit"), "../escape").is_err());
-        assert!(socket_path(Path::new("/tmp/kit"), "work_2").is_ok());
+        assert!(socket_path(Path::new("/tmp/core"), "../escape").is_err());
+        assert!(socket_path(Path::new("/tmp/core"), "work_2").is_ok());
     }
 }

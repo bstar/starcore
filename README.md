@@ -1,4 +1,4 @@
-# STAR/KIT
+# STAR/CORE
 
 A Rust framework for beautiful, efficient terminal applications, developed in
 [STAR/AMP](https://github.com/bstar/staramp),
@@ -6,9 +6,9 @@ A Rust framework for beautiful, efficient terminal applications, developed in
 [STAR/CORD](https://github.com/bstar/starcord) and
 [STAR/WIRE](https://github.com/bstar/starwire).
 
-KIT combines a Ratatui cell presentation with native pixel rendering, terminal
+CORE combines a Ratatui cell presentation with native pixel rendering, terminal
 capability negotiation, SSH scene transport, audio output and video streaming.
-Applications keep their domain models and commands. KIT supplies the shared
+Applications keep their domain models and commands. CORE supplies the shared
 presentation and transport foundation, with capability-based fallbacks.
 
 The public framework is in development. Versions remain 0.x; shared engines
@@ -53,7 +53,7 @@ Applications pin immutable git tags for releases and commit revisions for
 development candidates, with git-sourced lockfiles. The current framework
 release is `v0.8.1`; development main uses the unreleased 0.9 candidate.
 See [the changelog](CHANGELOG.md). CI checks all
-four consumers against the candidate checkout as well as KIT's full and minimal
+four consumers against the candidate checkout as well as CORE's full and minimal
 feature sets. This catches shared API regressions before the next tag.
 
 Responsive pane adoption and application migrations happen incrementally.
@@ -115,9 +115,9 @@ their command catalogue and retain ownership of actions.
 ## Start an application
 
 Copy [`examples/starter`](examples/starter) into a new repository. It is an
-independent package pinned to an immutable KIT candidate revision and uses only
+independent package pinned to an immutable CORE candidate revision and uses only
 public APIs. No sibling checkout is required.
-Run through KIT's development shell while working here:
+Run through CORE's development shell while working here:
 
 ```sh
 nix develop -c cargo run --manifest-path examples/starter/Cargo.toml -- --inspect
@@ -126,9 +126,9 @@ nix develop -c cargo run --manifest-path examples/starter/Cargo.toml --features 
 ```
 
 `--ssh HOST REMOTE_EXECUTABLE` attaches the same native/cell frontend to a copy
-installed on another machine. KIT authenticates before raw mode. No media
+installed on another machine. CORE authenticates before raw mode. No media
 backend is required for these UI paths. `--features media` enables codecs and
-speaker output when an application uses KIT's media transport.
+speaker output when an application uses CORE's media transport.
 
 The starter's `--inspect` emits capabilities, fallback reasons, pane rectangles,
 visibility and focus as JSON. `--replay` accepts a bounded JSON action array on
@@ -192,7 +192,7 @@ against current local changes before publishing another candidate. `scripts/test
 Kitty animation, resize, frontend loss, reattachment and cleanup. Tiled Wayland
 uses terminal font zoom for the viewport resize check.
 
-| Requirement | KIT feature/API |
+| Requirement | CORE feature/API |
 | --- | --- |
 | Themes, responsive panes, input, focus, ASCII and reduced colors | No default features; `panes`, `presentation`, `chrome`, `term::Session` |
 | Image decoding and terminal image protocols | `image`, optional `gif`, `webp`, `bmp` |
@@ -210,7 +210,7 @@ pixel mouse input, trusted host paths and speaker access. An ordinary SSH shell
 cannot reach the terminal computer's speakers; use the local SSH frontend for
 that route. Device-open errors remain explicit and never switch playback hosts.
 
-`STAR_KIT_ASCII=1` requests ASCII presentation; `NO_COLOR` disables cell colors.
+`STAR_CORE_ASCII=1` requests ASCII presentation; `NO_COLOR` disables cell colors.
 `Profile::adapt_buffer` converts shared chrome/content to the selected glyph and
 color limits. The graphical session's cell frontend applies it automatically.
 Ordinary ratatui applications apply it once after painting their buffer, as the
@@ -218,7 +218,7 @@ starter does. Use non-color modifiers for selection in monochrome themes.
 
 ## Readiness and release gates
 
-KIT remains a versioned 0.x public preview. Published tags and portable locks,
+CORE remains a versioned 0.x public preview. Published tags and portable locks,
 four consumer checks, full/minimal/graphics-only/audio feature tests, deterministic
 layout/replay tests, native rendering tests and an independent starter protect
 its public boundaries. Packaging is checked with `cargo package`; release tags

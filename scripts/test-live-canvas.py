@@ -19,7 +19,7 @@ p.add_argument("--output",required=True)
 p.add_argument("--display-server",default="x11",choices=["x11","wayland"])
 a=p.parse_args()
 output=Path(a.output).resolve();output.mkdir(parents=True,exist_ok=True)
-with tempfile.TemporaryDirectory(prefix="kit-live-proof-") as private:
+with tempfile.TemporaryDirectory(prefix="core-live-proof-") as private:
     private=Path(private)
     startup=TerminalStartup(private)
     runtime=private/"runtime";runtime.mkdir(mode=0o700)
@@ -35,15 +35,15 @@ def handle_result(args, result, target_window_id, boss):
          "XDG_CONFIG_HOME":str(Path(private)/"config"),
          "XDG_CACHE_HOME":str(Path(private)/"cache"),
          "XDG_DATA_HOME":str(Path(private)/"data"),
-         "STAR_KIT_LIVE_DIR":str(output/"profile")}
+         "STAR_CORE_LIVE_DIR":str(output/"profile")}
     env.pop("NO_COLOR",None)
-    env.pop("STAR_KIT_ASCII",None)
+    env.pop("STAR_CORE_ASCII",None)
     if a.display_server=="wayland" and os.environ.get("WAYLAND_DISPLAY"):
         env["WAYLAND_DISPLAY"]=str(Path(os.environ["XDG_RUNTIME_DIR"])/os.environ["WAYLAND_DISPLAY"])
     log=(output/"kitty.log").open("w")
     child=None
     def launch(*args):
-        return subprocess.Popen([a.kitty,"--config","/dev/null","--listen-on",address,"-o","allow_remote_control=yes","-o","remember_window_size=no","-o",f"linux_display_server={a.display_server}","-o","initial_window_width=100c","-o","initial_window_height=40c","--title","STAR-KIT-LIVE-PROOF",*startup.command(str(Path(a.example).resolve()),*args)],env=env,stdout=log,stderr=log)
+        return subprocess.Popen([a.kitty,"--config","/dev/null","--listen-on",address,"-o","allow_remote_control=yes","-o","remember_window_size=no","-o",f"linux_display_server={a.display_server}","-o","initial_window_width=100c","-o","initial_window_height=40c","--title","STAR-CORE-LIVE-PROOF",*startup.command(str(Path(a.example).resolve()),*args)],env=env,stdout=log,stderr=log)
     def rc(*args):
         return subprocess.check_output([a.kitten,"@","--to",address,*args],stderr=subprocess.PIPE,timeout=10)
     def pixels(name, previous_dimensions=None):
@@ -94,7 +94,7 @@ def handle_result(args, result, target_window_id, boss):
             rc("set-font-size","18");time.sleep(.3);pixels("resized")
             after=json.loads(rc("ls"))[0]["tabs"][0]["windows"][0]
             assert (before["columns"],before["lines"])!=(after["columns"],after["lines"]),"Terminal grid did not resize"
-        sessions=list((runtime/"starkit-live-canvas").glob("*.args.json"));assert len(sessions)==1
+        sessions=list((runtime/"starcore-live-canvas").glob("*.args.json"));assert len(sessions)==1
         session=sessions[0].name.removesuffix(".args.json")
         child.terminate();child.wait(timeout=10);time.sleep(.3)
         assert sessions[0].exists(),"Frontend loss destroyed controller state"

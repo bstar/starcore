@@ -1,4 +1,4 @@
-# Native STAR/KIT frontend for existing SSH shells
+# Native STAR/CORE frontend for existing SSH shells
 
 This experimental integration lets an application launch normally after `ssh`
 while its native Rust frontend runs inside the same local Kitty window. The
@@ -9,10 +9,10 @@ again, or create a network listener.
 Install the watcher on the machine running Kitty, once:
 
 ```conf
-watcher /absolute/path/to/starkit/integrations/kitty/star_kit.py
+watcher /absolute/path/to/starcore/integrations/kitty/star_core.py
 ```
 
-Provide an executable `~/.local/bin/star-kit-terminal` that invokes the installed
+Provide an executable `~/.local/bin/star-core-terminal` that invokes the installed
 application's terminal client entrypoint. For STAR/FOLD:
 
 ```sh
@@ -24,7 +24,7 @@ New Kitty windows load the watcher. Remote application launchers use
 `terminal_bridge::probe` and, when present, `Attachment::relay` against their
 persistent session socket. Unsupported terminals retain the ordinary frontend.
 The client entrypoint calls `client::run_terminal_socket_with_events`; all UI
-rendering and drag capability handling remain native Rust in STAR/KIT.
+rendering and drag capability handling remain native Rust in STAR/CORE.
 
 Kitty's Python watcher is limited to launch and message framing. It starts only
 the fixed local executable above. Remote messages cannot choose a command,
@@ -45,24 +45,24 @@ transport implementation but has not been exercised in the desktop fixture.
 Run transport isolation/backpressure checks without desktop access:
 
 ```sh
-PYTHONDONTWRITEBYTECODE=1 python3 integrations/kitty/test_star_kit.py
+PYTHONDONTWRITEBYTECODE=1 python3 integrations/kitty/test_star_core.py
 ```
 
 ## REEL video and audio
 
-KIT's generic `session-frontend` example presents an application without linking
-its backend. Build it on the terminal computer through KIT's Nix shell:
+CORE's generic `session-frontend` example presents an application without linking
+its backend. Build it on the terminal computer through CORE's Nix shell:
 
 ```sh
 ./scripts/build-frontend-local.sh
 mkdir -p ~/.local/bin
-ln -s "$PWD/scripts/run-frontend-local.sh" ~/.local/bin/star-kit-frontend
+ln -s "$PWD/scripts/run-frontend-local.sh" ~/.local/bin/star-core-frontend
 ```
 
 The binary is `target/release/examples/session-frontend`. This repository's
 `scripts/run-frontend-local.sh` also loads `target/frontend-env.sh` for Linux
 ALSA plugins; the build script records this environment automatically. Run
-`star-kit-frontend --ssh USER@HOST --project REMOTE_DIRECTORY`;
+`star-core-frontend --ssh USER@HOST --project REMOTE_DIRECTORY`;
 `--executable` selects the absolute host executable and `--ssh-config` selects
 an SSH configuration. Sessions use the existing authenticated SSH transport.
 
@@ -70,17 +70,17 @@ The normal REEL command inside SSH remains
 `starreel --restart --project ~/Videos/demo.starreel`. Applications start their
 controller before attaching the terminal bridge, including fresh projects and
 restarts. A FOLD terminal-client wrapper uses the same decoder after rebuilding
-FOLD against the matching KIT revision. This is a one-time frontend update on
+FOLD against the matching CORE revision. This is a one-time frontend update on
 the terminal computer; it requires no new launch command or SSH authentication.
 
-For installations without FOLD, the fixed `star-kit-terminal` wrapper may instead
-execute `star-kit-frontend --terminal-frontend "$@"`. The socket is supplied by
+For installations without FOLD, the fixed `star-core-terminal` wrapper may instead
+execute `star-core-frontend --terminal-frontend "$@"`. The socket is supplied by
 the watcher. REEL's application lifecycle now negotiates this bridge too.
 Updating the watcher file alone is insufficient: both the frontend and the
-remote KIT consumer need streamed-frame support.
+remote CORE consumer need streamed-frame support.
 
 Updated media-enabled frontends negotiate `canvas_video` for interactive H.264
-canvases. REEL encodes access units on GStreamer workers; KIT reuses FOLD's
+canvases. REEL encodes access units on GStreamer workers; CORE reuses FOLD's
 hardware/software decoder helpers on a local worker, without a movie clock or
 seek buffering. Video is bounded to 1280×720 and 60 fps, one access unit in
 flight, and 2 MiB per access unit. Interdependent encoded packets are preserved;

@@ -308,9 +308,9 @@ impl Management {
             .map(std::path::PathBuf::from)
             .unwrap_or_else(|| {
                 std::env::temp_dir()
-                    .join(format!("starkit-{}", rustix::process::geteuid().as_raw()))
+                    .join(format!("starcore-{}", rustix::process::geteuid().as_raw()))
             });
-        let root = runtime.join("starkit-streaming");
+        let root = runtime.join("starcore-streaming");
         if !root.exists() {
             std::fs::create_dir_all(&root)?;
             std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o700))?;

@@ -9,7 +9,7 @@ it under another name; everything that reads such a file reads `AGENTS.md`.
 
 ## Public framework and four reference consumers
 
-STAR/KIT is being prepared as a public framework for native terminal apps.
+STAR/CORE is being prepared as a public framework for native terminal apps.
 STAR/AMP, STAR/FOLD, STAR/CORD and STAR/WIRE are its reference consumers.
 Keep cell and graphical presentations, SSH capability negotiation, bounded
 media transport, visual fidelity and performance in shared engine code.
@@ -29,7 +29,7 @@ change requires a minor version on 0.x; compatible fixes use a patch version.
 Before changing a signature, read all four consumers. The consumer checkouts
 on the Linux workstation are `../staramp`, `../starfold`, `../starcord` and
 `../starwire`. Consumer CI tests disposable
-copies against the candidate KIT checkout using `scripts/check-consumer.py`.
+copies against the candidate CORE checkout using `scripts/check-consumer.py`.
 
 ## Framework work program
 
@@ -54,8 +54,8 @@ the four:
 
 ```toml
 # ../staramp/.cargo/config.toml -- untracked, and in .gitignore
-[patch."https://github.com/bstar/starkit"]
-starkit = { path = "../starkit" }
+[patch."https://github.com/bstar/starcore"]
+starcore = { path = "../starcore" }
 ```
 
 `.cargo/` is ignored in all four applications rather than merely left
@@ -150,7 +150,7 @@ cosmic-text/Swash and tiny-skia. Native RGBA frames pass directly to the Kitty
 region presenter. No browser, JavaScript runtime or display server is used.
 Bundled Liberation fonts and their OFL notice live in `assets/fonts`; installed
 fonts supply Unicode fallback. Keep the native rendering, protocol and font
-assets in KIT so applications share one implementation. The ordinary feature
+assets in CORE so applications share one implementation. The ordinary feature
 matrix remains unaffected.
 
 Native embedded surfaces use `native_surface::{Surface, Primitive, PixelRect}`.
@@ -237,7 +237,7 @@ and sustained real-device listening remain acceptance gates for a maturity claim
 ## REEL integration candidate (0.9)
 
 Local live canvases are graphics-only. Keep frame coalescing, immutable leases,
-acknowledgements, generations and byte/stream bounds in KIT; GStreamer/GES and
+acknowledgements, generations and byte/stream bounds in CORE; GStreamer/GES and
 Smithay belong to REEL. Source pixels never enter scene JSON. `ContentView`
 must drive both placement and embedded pointer coordinates. Relative pointer
 capture remains false until it is implemented and physically verified.
@@ -246,14 +246,14 @@ Run `scripts/check-live-canvas.py` through the flake, alongside the starter and
 feature matrix. The independent example exercises two producer workers using
 public APIs. `scripts/test-live-canvas.py` checks real private Kitty pixels and
 controller reattachment; use `--display-server wayland` on this workstation.
-The four consumers expose `scripts/check-kit.sh`; candidate checks modify only
+The four consumers expose `scripts/check-core.sh`; candidate checks modify only
 disposable manifests/locks. Development main pins an immutable 0.9 candidate
 revision so fresh checkouts build without a sibling repository. This is not a
 release; release source pins still move only after tagging.
 
 ## Application UI renovation (0.13 candidate)
 
-The user selected AMP-derived chrome and a KIT-owned UI tree/lifecycle, with
+The user selected AMP-derived chrome and a CORE-owned UI tree/lifecycle, with
 consistent actions in cells and graphics. Cell headings remain compact border
 headings; graphical headings use physical title strips. Windows 3.11 describes
 simplicity and consistency, not a visual recreation. SCREEN replaces REEL and
@@ -308,12 +308,12 @@ Applications reset the request tracker on detach and never replay its effects.
 Video playback remains in the existing media protocols, not this URL service.
 
 Crossterm 0.29.0 panics on zero SGR mouse/cursor coordinates in debug builds.
-KIT and both independent examples patch crates.io to upstream commit
+CORE and both independent examples patch crates.io to upstream commit
 `d4e9929f9a1c4adf91505d54f8527c817ae504cd`, matching AMP/CORD. Cargo only
 honors the root manifest's patch; applications must keep their own until a
 released Crossterm contains the fix. FOLD's vendored parser already guards
 these coordinates and retains its OSC drop extension. Do not silently remove
-these root patches when updating KIT pins. The gallery proof injects zero
+these root patches when updating CORE pins. The gallery proof injects zero
 coordinates before exercising shortcuts and theme changes.
 
 Hosted consumer CI currently covers AMP, FOLD, CORD and WIRE. The SCREEN repository is not accessible to the workflow token; keep its fifth-consumer migration gate pending and run it locally until that source is available. Do not count a skipped/inaccessible checkout as a passed migration.
@@ -365,7 +365,7 @@ left alignment. This remains control catalog work, not a WIRE migration.
 wheel delivery and inline cancellation. `Application::focus_request` is a
 controlled target: handle user `Focused` events, including toolbar/dialog
 buttons, rather than re-requesting an old pane after every input. Its layout
-callback observes KIT's resolved frame; it must not introduce another solver.
+callback observes CORE's resolved frame; it must not introduce another solver.
 The real WIRE fixture also exposed F9 being trapped by a modal editor. Keep
 presentation switching available in modals while background domain shortcuts
 remain blocked. Full app migrations and the remaining catalog/media gates
@@ -388,7 +388,7 @@ Both 6.1.6 and 9.0.1 passed movie and forced-frame-metadata regressions locally.
 
 STAR/FLUX is the visual reference for the fleet, including STAR/VAULT. Keep
 font selection, shaping, rasterization, physical text sizing and remote display
-ownership in STAR/KIT. Shared UI text uses the attaching terminal's font family;
+ownership in STAR/CORE. Shared UI text uses the attaching terminal's font family;
 12 px body text and explicit heading sizes follow FLUX chrome. Do not introduce
 per-app font substitutions or rasterizers. `with_ui_text` follows this policy;
 fixed artwork may explicitly opt into `with_bundled_ui_text`. Cell mode remains

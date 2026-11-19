@@ -1,6 +1,6 @@
-"""STAR/KIT terminal frontend transport. Install as a Kitty watcher.
+"""STAR/CORE terminal frontend transport. Install as a Kitty watcher.
 
-Runs only ~/.local/bin/star-kit-terminal, never a command or path from the host.
+Runs only ~/.local/bin/star-core-terminal, never a command or path from the host.
 Each parent terminal has an isolated nonce and private socket. All UI, input,
 rendering and drop capabilities belong to the native Rust frontend.
 """
@@ -16,7 +16,7 @@ from collections import deque
 from pathlib import Path
 
 MAX_MESSAGE = 16 * 1024 * 1024
-CLIENT = Path.home() / '.local/bin/star-kit-terminal'
+CLIENT = Path.home() / '.local/bin/star-core-terminal'
 sessions = {}
 
 
@@ -27,7 +27,7 @@ class Session:
         self.boss, self.window, self.nonce = boss, window, nonce
         from kitty.fast_data_types import os_window_font_size
         self.initial_font_size = os_window_font_size(window.os_window_id)
-        self.root = tempfile.mkdtemp(prefix='star-kit-terminal-', dir='/tmp')
+        self.root = tempfile.mkdtemp(prefix='star-core-terminal-', dir='/tmp')
         self.listener = socket.socket(socket.AF_UNIX)
         path = os.path.join(self.root, nonce)
         self.listener.bind(path)
@@ -49,7 +49,7 @@ class Session:
         try:
             opts, args = parse_launch_args(['--type=overlay-main', '--copy-colors', '--copy-env',
                                           '--next-to', f'id:{window.id}',
-                                          '--env', f'STAR_KIT_FONT_MILLIPOINTS={round(self.initial_font_size * 1000)}'])
+                                          '--env', f'STAR_CORE_FONT_MILLIPOINTS={round(self.initial_font_size * 1000)}'])
             self.overlay = launch(boss, opts, [str(CLIENT), path],
                                   target_tab=window.tabref(), force_target_tab=True,
                                   rc_from_window=window)
@@ -60,7 +60,7 @@ class Session:
             raise
 
     def reply(self, value):
-        self.window.write_to_child(f'STAR_KIT_BRIDGE {self.nonce} {value}\n'.encode())
+        self.window.write_to_child(f'STAR_CORE_BRIDGE {self.nonce} {value}\n'.encode())
 
     def close(self):
         if self.closed:
@@ -134,7 +134,7 @@ class Session:
                     break
                 line = bytes(self.incoming[:end])
                 if not self.authenticated:
-                    if line != f'STAR_KIT_CLIENT {self.nonce}'.encode():
+                    if line != f'STAR_CORE_CLIENT {self.nonce}'.encode():
                         raise ValueError('Invalid terminal bridge capability')
                     self.authenticated = True
                 else:
@@ -169,7 +169,7 @@ class Session:
                         self.output[0] = self.output[0][written:]
                         break
         except Exception as error:
-            print(f'STAR/KIT terminal bridge: {error}', flush=True)
+            print(f'STAR/CORE terminal bridge: {error}', flush=True)
             self.close()
 
 
@@ -182,7 +182,7 @@ def on_load(boss, data):
         if not isinstance(module, dict) or Path(path).resolve() == Path(__file__).resolve():
             continue
         candidate = Path(path)
-        if candidate.parent.resolve() != managed or not candidate.name.startswith('star_kit'):
+        if candidate.parent.resolve() != managed or not candidate.name.startswith('star_core'):
             continue
         previous = module.get('sessions')
         if isinstance(previous, dict) and previous:
@@ -193,7 +193,7 @@ def on_load(boss, data):
 
 
 def on_set_user_var(boss, window, data):
-    if data.get('key') != 'star_kit' or not data.get('value'):
+    if data.get('key') != 'star_core' or not data.get('value'):
         return
     try:
         if len(data['value']) > 8192:
@@ -205,7 +205,7 @@ def on_set_user_var(boss, window, data):
         current = sessions.get(window.id)
         if op == 'probe':
             if CLIENT.is_file() and os.access(CLIENT, os.X_OK):
-                window.write_to_child(f'STAR_KIT_BRIDGE {nonce} ready\n'.encode())
+                window.write_to_child(f'STAR_CORE_BRIDGE {nonce} ready\n'.encode())
         elif op == 'start':
             if current:
                 # A different nonce cannot replace a live session.
@@ -217,13 +217,13 @@ def on_set_user_var(boss, window, data):
             else:
                 current.data(op, value.get('data'))
     except Exception as error:
-        print(f'STAR/KIT terminal bridge: {error}', flush=True)
+        print(f'STAR/CORE terminal bridge: {error}', flush=True)
         if sessions.get(window.id):
             sessions[window.id].close()
         else:
             nonce = locals().get('nonce')
             if isinstance(nonce, str) and re.fullmatch('[0-9a-f]{48}', nonce):
-                window.write_to_child(f'STAR_KIT_BRIDGE {nonce} gone\n'.encode())
+                window.write_to_child(f'STAR_CORE_BRIDGE {nonce} gone\n'.encode())
 
 
 def on_close(boss, window, data):

@@ -301,7 +301,7 @@ fn presentation_switch_is_available_inside_modal_fields_without_losing_their_val
     ui.render_surface(Viewport::graphics(800, 600)).unwrap();
     assert_eq!(
         ui.key(key(KeyCode::F(9))),
-        vec![Event::Command("kit.presentation".into())]
+        vec![Event::Command("core.presentation".into())]
     );
     ui.render_cells(Viewport::cells(100, 40)).unwrap();
     assert_eq!(ui.current_frame().unwrap().focus, Some("dialog".into()));
@@ -315,7 +315,7 @@ fn presentation_switch_is_available_inside_modal_fields_without_losing_their_val
     );
     assert_eq!(
         ui.key(key(KeyCode::F(9))),
-        vec![Event::Command("kit.presentation".into())]
+        vec![Event::Command("core.presentation".into())]
     );
     ui.render_surface(Viewport::graphics(800, 600)).unwrap();
     assert_eq!(ui.fields[&Id::from("dialog")].text(), "Draftx");

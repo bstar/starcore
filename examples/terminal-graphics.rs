@@ -1,6 +1,6 @@
 //! Shared runtime smoke example; --png captures without taking over the terminal.
 use anyhow::Context as _;
-use starkit::terminal_graphics::{
+use starcore::terminal_graphics::{
     protocol::*,
     renderer::{KittyPresenter, RenderMessage, Renderer},
 };
@@ -45,7 +45,7 @@ fn main() -> anyhow::Result<()> {
                     width: 20,
                     height: 3,
                 },
-                label: "STAR / KIT  ×".into(),
+                label: "STAR / CORE  ×".into(),
                 active: true,
             },
             Component::Meter {
@@ -89,11 +89,11 @@ fn main() -> anyhow::Result<()> {
         scene = serde_json::from_slice(&std::fs::read(args.get(1).expect("--scene PATH"))?)?;
         args.get(2)
             .cloned()
-            .unwrap_or_else(|| "/tmp/starkit-graphical.png".into())
+            .unwrap_or_else(|| "/tmp/starcore-graphical.png".into())
     } else {
         args.first()
             .cloned()
-            .unwrap_or_else(|| "/tmp/starkit-graphical.png".into())
+            .unwrap_or_else(|| "/tmp/starcore-graphical.png".into())
     };
     let iterations = std::env::var("STAR_GRAPHICS_BENCH_FRAMES")
         .ok()
@@ -135,7 +135,7 @@ fn main() -> anyhow::Result<()> {
                 } => {
                     use base64::Engine;
                     let pixels = pixels.context("Native frame has no pixels")?;
-                    let png = starkit::terminal_graphics::renderer::encode_pixels(&pixels)?;
+                    let png = starcore::terminal_graphics::renderer::encode_pixels(&pixels)?;
                     let bytes = base64::engine::general_purpose::STANDARD.decode(&png)?;
                     if index == iterations - 1 {
                         std::fs::File::create(&output)?.write_all(&bytes)?;

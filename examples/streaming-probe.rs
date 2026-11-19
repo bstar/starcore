@@ -1,5 +1,5 @@
 //! Standalone real-codec integration fixture; never opens audio or a compositor.
-use starkit::streaming::{Resource, Server};
+use starcore::streaming::{Resource, Server};
 use std::{
     io::{self, Read, Write},
     path::PathBuf,

@@ -1,5 +1,5 @@
 import XCTest
-@testable import StarKit
+@testable import StarCore
 final class ConnectionTests:XCTestCase {
     func testCommandQuotesHostPathsAndArguments() throws {
         let profile=SSHProfile(host:"host",username:"user",remoteExecutable:"/apps/it’s screen/run.sh",movieDirectory:"/Movies/Bob's Movies;$(touch bad)")

@@ -293,7 +293,7 @@ mode = \"bars\"
         // A fixed temp name in a shared config directory is two instances
         // interleaving into one file and then both renaming it over the
         // config. The name carries the pid so each has its own.
-        let dir = std::env::temp_dir().join(format!("starkit-edit-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("starcore-edit-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         let path = dir.join("config.toml");
         std::fs::write(&path, "[ui]\nglyphs = \"nerd\"\n").unwrap();

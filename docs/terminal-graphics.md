@@ -7,7 +7,7 @@ The earlier browser experiment is preserved in Git history only.
 
 ## Shared foundation
 
-STAR/KIT owns scenes, typography, icons, panels, menus, tabs, meters, raster
+STAR/CORE owns scenes, typography, icons, panels, menus, tabs, meters, raster
 previews, bounded rendering queues, Kitty image placements and terminal input.
 Applications retain their existing controllers, commands, file workers and hit
 geometry. The ordinary TUI feature matrix is unchanged.
@@ -15,7 +15,7 @@ geometry. The ordinary TUI feature matrix is unchanged.
 ```text
 Local Kitty ← changed PNG regions ← native Rust pixel renderer
                                       ↑
-                               STAR/KIT frontend
+                               STAR/CORE frontend
                                       ↕ versioned scene/input protocol
                          local relay or ordinary SSH
                                       ↕
@@ -86,8 +86,8 @@ physical cell grid. Existing 60×21 layout limits remain.
 ```sh
 nix develop -c cargo test --all-features
 nix develop -c cargo test --no-default-features
-nix develop -c cargo run --release --example terminal-graphics --features terminal-graphics -- /tmp/starkit-native.png
-STAR_GRAPHICS_BENCH_FRAMES=30 target/release/examples/terminal-graphics /tmp/starkit-native-benchmark.png
+nix develop -c cargo run --release --example terminal-graphics --features terminal-graphics -- /tmp/starcore-native.png
+STAR_GRAPHICS_BENCH_FRAMES=30 target/release/examples/terminal-graphics /tmp/starcore-native-benchmark.png
 ```
 
 The PNG example is headless and requires no Electron or Node installation.
@@ -109,7 +109,7 @@ clipped Unicode file labels, password masking and invalid data. Presentation
 tests reconstruct skipped frames, resize and complete-frame transitions.
 
 Rendered frames carry their exact layout snapshot so overlays and live layers
-never use a newer scene's geometry. KIT restores graphics on focus return and
+never use a newer scene's geometry. CORE restores graphics on focus return and
 refreshes quiet cached regions in bounded batches; terminal placement loss does
 not require an application state change to repair. Ctrl+L restores all graphical
 layers without restarting the renderer. See [display lifetime and recovery](native-style.md#display-lifetime-and-recovery)

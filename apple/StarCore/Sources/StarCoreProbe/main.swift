@@ -1,10 +1,10 @@
 import Foundation
-import StarKit
+import StarCore
 
 @main struct Probe {
     static func main() async throws {
         let args=CommandLine.arguments
-        guard args.count==7 else { print("starkit-probe HOST PORT USER FINGERPRINT REMOTE_EXECUTABLE MOVIE_DIRECTORY; secret via STAR_SSH_PASSWORD or STAR_SSH_PRIVATE_KEY"); return }
+        guard args.count==7 else { print("starcore-probe HOST PORT USER FINGERPRINT REMOTE_EXECUTABLE MOVIE_DIRECTORY; secret via STAR_SSH_PASSWORD or STAR_SSH_PRIVATE_KEY"); return }
         let profile=SSHProfile(host:args[1],port:Int(args[2]) ?? 22,username:args[3],hostKeyFingerprint:args[4],remoteExecutable:args[5],movieDirectory:args[6])
         let env=ProcessInfo.processInfo.environment
         let credential:SSHCredential=env["STAR_SSH_PRIVATE_KEY"].map { .privateKey($0) } ?? .password(env["STAR_SSH_PASSWORD"] ?? "")

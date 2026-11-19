@@ -30,4 +30,4 @@ service and gives the resulting HTTP URL to its player. This module does not
 require or claim that tvOS offers an OpenSSH executable.
 
 Applications keep channel schedules, browsing models, metadata and selection
-policy outside KIT. The SCREEN experimental branch is the first consumer.
+policy outside CORE. The SCREEN experimental branch is the first consumer.

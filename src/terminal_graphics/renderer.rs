@@ -1138,7 +1138,7 @@ mod tests {
             .present_pixels(next.clone(), viewport, &mut wire)
             .unwrap();
         let split = assert_atomic_swap(&wire, 9);
-        if let Some(directory) = std::env::var_os("STAR_KIT_REFRESH_FIXTURE") {
+        if let Some(directory) = std::env::var_os("STAR_CORE_REFRESH_FIXTURE") {
             let directory = std::path::PathBuf::from(directory);
             std::fs::create_dir_all(&directory).unwrap();
             std::fs::write(directory.join("initial.bin"), initial_wire).unwrap();

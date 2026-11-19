@@ -167,7 +167,7 @@ impl Connection {
             .file_name()
             .and_then(|s| s.to_str())
             .context("Invalid terminal socket")?;
-        writeln!(socket, "STAR_KIT_CLIENT {nonce}")?;
+        writeln!(socket, "STAR_CORE_CLIENT {nonce}")?;
         Self::streams(socket.try_clone()?, socket.try_clone()?, None, Some(socket))
     }
     fn streams(

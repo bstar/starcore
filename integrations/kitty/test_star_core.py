@@ -9,7 +9,7 @@ from collections import deque
 from pathlib import Path
 from unittest.mock import patch
 
-spec = importlib.util.spec_from_file_location('star_kit', Path(__file__).with_name('star_kit.py'))
+spec = importlib.util.spec_from_file_location('star_core', Path(__file__).with_name('star_core.py'))
 bridge = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bridge)
 
@@ -38,10 +38,10 @@ class Tests(unittest.TestCase):
         current = types.SimpleNamespace(nonce='a' * 48, data=lambda *args: commands.append(args))
         bridge.sessions[window.id] = current
         for target, nonce in [(window, 'b' * 48), (types.SimpleNamespace(id=2), 'a' * 48)]:
-            bridge.on_set_user_var(None, target, {'key': 'star_kit', 'value': json.dumps(
+            bridge.on_set_user_var(None, target, {'key': 'star_core', 'value': json.dumps(
                 {'v': 1, 'op': 'end', 'nonce': nonce})})
         self.assertEqual(commands, [])
-        bridge.on_set_user_var(None, window, {'key': 'star_kit', 'value': json.dumps(
+        bridge.on_set_user_var(None, window, {'key': 'star_core', 'value': json.dumps(
             {'v': 1, 'op': 'end', 'nonce': 'a' * 48})})
         self.assertEqual(commands, [('end', None)])
 
@@ -94,7 +94,7 @@ class Tests(unittest.TestCase):
     def test_versioned_watcher_preserves_the_live_registry(self):
         previous = {1: object()}
         launch = types.ModuleType('kitty.launch')
-        launch.watcher_modules = {str(Path(bridge.__file__).with_name('star_kit-old.py')): {'sessions': previous}}
+        launch.watcher_modules = {str(Path(bridge.__file__).with_name('star_core-old.py')): {'sessions': previous}}
         with patch.dict(sys.modules, {'kitty.launch': launch}):
             bridge.on_load(None, {})
         self.assertIs(bridge.sessions, previous)
@@ -113,12 +113,12 @@ class Tests(unittest.TestCase):
         modules['kitty.launch'].parse_launch_args = lambda _: (None, [])
         modules['kitty.launch'].launch = lambda boss, opts, args, **kw: calls.append(args) or overlay
         with patch.dict(sys.modules, modules):
-            bridge.on_set_user_var(boss, window, {'key': 'star_kit', 'value': json.dumps({
+            bridge.on_set_user_var(boss, window, {'key': 'star_core', 'value': json.dumps({
                 'v': 1, 'nonce': 'a' * 48, 'op': 'start',
                 'command': ['arbitrary-remote-command'], 'path': '/arbitrary/remote/path'})})
             self.assertEqual(len(calls), 1)
             self.assertEqual(calls[0][0], str(bridge.CLIENT))
-            self.assertTrue(calls[0][1].startswith('/tmp/star-kit-terminal-'))
+            self.assertTrue(calls[0][1].startswith('/tmp/star-core-terminal-'))
             self.assertEqual(Path(calls[0][1]).name, 'a' * 48)
             bridge.sessions[window.id].close()
 

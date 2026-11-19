@@ -1,5 +1,5 @@
 //! Interactive, application-independent consumer of the shared session API.
-use starkit::terminal_graphics::{
+use starcore::terminal_graphics::{
     client::{run as client, Launch},
     protocol::*,
     session::{self, Controller},
@@ -13,16 +13,16 @@ use std::{
 pub fn preview(rect: Rect) -> Component {
     static PNG: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     let png = PNG.get_or_init(|| {
-        let image = starkit::image::RgbaImage::from_fn(80, 48, |x, y| {
+        let image = starcore::image::RgbaImage::from_fn(80, 48, |x, y| {
             let ridge = 18 + x.abs_diff(40) / 3;
             let color = if y >= ridge {
                 [166, 227, 161, 255]
             } else {
                 [137, 180, 250, 255]
             };
-            starkit::image::Rgba(color)
+            starcore::image::Rgba(color)
         });
-        starkit::terminal_graphics::assets::encode_png(&image)
+        starcore::terminal_graphics::assets::encode_png(&image)
             .expect("fixed demo surface is within PNG limits")
     });
     Component::Image {
@@ -39,12 +39,12 @@ pub fn handles() -> bool {
         .is_some_and(|s| s == "--interactive" || s == "--graphical-relay" || s == "--serve")
 }
 pub fn run() -> anyhow::Result<()> {
-    let _log = if std::env::var_os("STAR_KIT_DEMO_DIR").is_some() {
-        Some(starkit::logging::init(
-            &starkit::paths::Paths::new(
-                "star_kit_demo",
-                "STAR_KIT_DEMO_DIR",
-                "STAR_KIT_DEMO_CONFIG_DIR",
+    let _log = if std::env::var_os("STAR_CORE_DEMO_DIR").is_some() {
+        Some(starcore::logging::init(
+            &starcore::paths::Paths::new(
+                "star_core_demo",
+                "STAR_CORE_DEMO_DIR",
+                "STAR_CORE_DEMO_CONFIG_DIR",
             ),
             true,
         )?)
@@ -54,7 +54,7 @@ pub fn run() -> anyhow::Result<()> {
     let args = std::env::args().collect::<Vec<_>>();
     let root = std::env::home_dir()
         .ok_or_else(|| anyhow::anyhow!("No user home"))?
-        .join(".local/starkit/graphical");
+        .join(".local/starcore/graphical");
     if args[1] == "--interactive" {
         return client(Launch {
             executable: std::env::current_exe()?.to_string_lossy().into(),
@@ -160,13 +160,13 @@ impl Controller for Demo {
         }
     }
     fn scene(&mut self, v: Viewport) -> Scene {
-        let area = starkit::ratatui::layout::Rect::new(0, 0, v.columns, v.rows);
-        let mut buffer = starkit::ratatui::buffer::Buffer::empty(area);
+        let area = starcore::ratatui::layout::Rect::new(0, 0, v.columns, v.rows);
+        let mut buffer = starcore::ratatui::buffer::Buffer::empty(area);
         buffer.set_style(
             area,
-            starkit::ratatui::style::Style::default()
-                .bg(starkit::ratatui::style::Color::Rgb(30, 30, 46))
-                .fg(starkit::ratatui::style::Color::Rgb(205, 214, 244)),
+            starcore::ratatui::style::Style::default()
+                .bg(starcore::ratatui::style::Color::Rgb(30, 30, 46))
+                .fg(starcore::ratatui::style::Color::Rgb(205, 214, 244)),
         );
         let mut scene = Scene::from_buffer(&buffer, v, 0);
         // This demo has no compatibility text; its content comes from the

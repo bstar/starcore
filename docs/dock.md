@@ -1,12 +1,12 @@
 # Responsive panes
 
-New applications use `starkit::panes`. `dock`, documented below, remains available
+New applications use `starcore::panes`. `dock`, documented below, remains available
 for existing split-tree callers. Pane layout works with the minimal feature set;
 geometry and interaction do not require graphics, FFmpeg or an audio device.
 
 ```rust
-use starkit::panes::{Node, Size, Overflow, Wrap};
-use starkit::ratatui::layout::Rect;
+use starcore::panes::{Node, Size, Overflow, Wrap};
+use starcore::ratatui::layout::Rect;
 
 let tree = Node::column(vec![
     Node::pane("browser").height(Size::fill(8)).priority(100),
@@ -22,7 +22,7 @@ let tree = Node::column(vec![
 let frame = tree.layout(Rect::new(0, 0, 100, 40))?;
 let preview = frame.rect_of("preview");
 let clicked = frame.hit(10, 12);
-# Ok::<(), starkit::panes::LayoutError>(())
+# Ok::<(), starcore::panes::LayoutError>(())
 ```
 
 Use the **same solved frame** for painting, pointer hit tests and focus. Rectangles
@@ -70,7 +70,7 @@ nix develop -c cargo run --release --example responsive-panes --no-default-featu
 
 # The dock
 
-`starkit::dock` lays panels out. It is a tree of splits and leaves, solved
+`starcore::dock` lays panels out. It is a tree of splits and leaves, solved
 once per frame, and its answer is the only source of geometry in the
 application: drawing reads it, and so does mouse handling.
 

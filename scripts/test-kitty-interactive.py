@@ -50,11 +50,11 @@ os.execv(sys.argv[2], [sys.argv[2], '--interactive'])
             "-o", "allow_remote_control=yes", "-o", "remember_window_size=no",
             "-o", "initial_window_width=100c", "-o", "initial_window_height=40c",
             *(["-o", "linux_display_server=x11"] if args.pointer_xdotool else []),
-            "--title", "STAR-KIT-INTERACTIVE-PROOF",
+            "--title", "STAR-CORE-INTERACTIVE-PROOF",
             sys.executable, str(starter), str(gate), args.example,
         ], stdout=log, stderr=log, env={
-            **os.environ, "STAR_KIT_DEMO_DIR": str(runtime),
-            "STAR_KIT_DEMO_LOG": "debug",
+            **os.environ, "STAR_CORE_DEMO_DIR": str(runtime),
+            "STAR_CORE_DEMO_LOG": "debug",
         })
         session_path = None
 
@@ -77,7 +77,7 @@ os.execv(sys.argv[2], [sys.argv[2], '--interactive'])
                 return rgb.size, rgb.tobytes()
 
         def presented_generation():
-            path = runtime / "cache/star_kit_demo.log"
+            path = runtime / "cache/star_core_demo.log"
             if not path.exists():
                 return 0
             generations = re.findall(
@@ -129,9 +129,9 @@ os.execv(sys.argv[2], [sys.argv[2], '--interactive'])
             # not window.pid, to prove creation and removal of its socket.
             frontend = next(p for p in window["foreground_processes"]
                             if p["cmdline"] == [args.example, "--interactive"])
-            session_path = Path.home() / ".local/starkit/graphical" / f"demo-{frontend['pid']}.sock"
+            session_path = Path.home() / ".local/starcore/graphical" / f"demo-{frontend['pid']}.sock"
             assert session_path.exists(), "Demo controller never created its session"
-            assert "Native Rust graphical renderer started" in (runtime / "cache/star_kit_demo.log").read_text(), \
+            assert "Native Rust graphical renderer started" in (runtime / "cache/star_core_demo.log").read_text(), \
                 "No native pixel renderer; the cell fallback does not prove this gate"
             assert not any("electron" in " ".join(p["cmdline"]).lower()
                            for p in window["foreground_processes"]), "Unexpected browser process"
@@ -150,7 +150,7 @@ os.execv(sys.argv[2], [sys.argv[2], '--interactive'])
                 tool = args.pointer_xdotool
                 window_id = subprocess.check_output([
                     tool, "search", "--onlyvisible", "--pid", str(child.pid),
-                    "--name", "STAR-KIT-INTERACTIVE-PROOF",
+                    "--name", "STAR-CORE-INTERACTIVE-PROOF",
                 ], timeout=5).decode().splitlines()[0]
                 before_pointer = closed_menu
                 subprocess.run([

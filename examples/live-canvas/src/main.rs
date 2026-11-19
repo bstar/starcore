@@ -1,6 +1,6 @@
-//! Independent engine integration: no media decoder or application-specific KIT hooks.
+//! Independent engine integration: no media decoder or application-specific CORE hooks.
 use anyhow::Result;
-use starkit::{content_view::ContentView, native_surface::{PixelRect, Surface}, terminal_graphics::{application::Application, embedded_input::EmbeddedKind, live_canvas::{Frame,LiveFrames,PixelFormat,Update}, protocol::{Component,Input,Rect,Scene,Viewport},session::Controller},worker::Worker};
+use starcore::{content_view::ContentView, native_surface::{PixelRect, Surface}, terminal_graphics::{application::Application, embedded_input::EmbeddedKind, live_canvas::{Frame,LiveFrames,PixelFormat,Update}, protocol::{Component,Input,Rect,Scene,Viewport},session::Controller},worker::Worker};
 use std::{sync::Arc,time::Duration};
 struct Demo {frames:LiveFrames,worker:Worker<()>,quit:bool,events:u64,status:String}
 impl Demo {
@@ -24,7 +24,7 @@ impl Controller for Demo {
     fn frame_interval(&self)->Duration{Duration::from_millis(100)}
     fn live_frames(&mut self)->Vec<Update>{self.frames.drain()}
     fn scene(&mut self,v:Viewport)->Scene{
-        let mut scene=Scene::from_buffer(&starkit::ratatui::buffer::Buffer::empty(starkit::ratatui::layout::Rect::new(0,0,v.columns,v.rows)),v,0);
+        let mut scene=Scene::from_buffer(&starcore::ratatui::buffer::Buffer::empty(starcore::ratatui::layout::Rect::new(0,0,v.columns,v.rows)),v,0);
         let w=v.width as u16;let h=v.height as u16;let half=w/2;
         for (i,id) in ["left","right"].iter().enumerate(){scene.components.push(Component::LiveCanvas{rect:Rect{x:i as u16*v.columns/2,y:0,width:v.columns/2,height:v.rows},id:(*id).into(),view:ContentView::new([640,360],PixelRect::new(i as u16*half,0,half.max(1),h.saturating_sub(60).max(1))).unwrap(),interactive:true});}
         let mut overlay=Surface::new(w,60.min(h),"#202839".into()).with_physical_text();overlay.text(PixelRect::new(12,12,w.saturating_sub(24),36),format!("{}  · {} input events",self.status,self.events),"#d7e4ff",15,false);
@@ -38,12 +38,12 @@ fn main()->Result<()>{
     let args:Vec<_>=std::env::args().skip(1).collect();
     if args.first().is_some_and(|a|a=="--inspect"||a=="--png"||a=="--self-test"){
         let mut demo=Demo::new()?;let scene=demo.scene(Viewport::default());
-        if args[0]=="--png"{starkit::terminal_graphics::renderer::render_reference(&scene)?.save(args.get(1).unwrap())?;}
+        if args[0]=="--png"{starcore::terminal_graphics::renderer::render_reference(&scene)?.save(args.get(1).unwrap())?;}
         else if args[0]=="--inspect"{println!("{}",serde_json::to_string(&scene)?);}
         else {std::thread::sleep(Duration::from_millis(80));let frames=demo.live_frames();anyhow::ensure!(frames.len()==2,"Both streams must produce independent latest frames");for u in frames{if let Update::Frame{frame,..}=u{frame.validate()?;}}println!("Two independent raw-frame producers passed");}
         demo.shutdown();return Ok(());
     }
-    let paths = starkit::paths::Paths::new("starkit-live-canvas", "STAR_KIT_LIVE_DIR", "STAR_KIT_LIVE_CONFIG_DIR");
-    let _log = starkit::logging::init(&paths, true)?;
+    let paths = starcore::paths::Paths::new("starcore-live-canvas", "STAR_CORE_LIVE_DIR", "STAR_CORE_LIVE_CONFIG_DIR");
+    let _log = starcore::logging::init(&paths, true)?;
     Application::new("live-canvas")?.run(|_|Demo::new())
 }

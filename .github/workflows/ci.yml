@@ -76,7 +76,7 @@ jobs:
         # The standalone starter's media feature needs codec packages; test
         # its renderer-free and native paths in this job instead.
         env:
-          STAR_KIT_STARTER_NO_MEDIA: "1"
+          STAR_CORE_STARTER_NO_MEDIA: "1"
 
   # What the dependency tree is carrying, which nobody notices by reading it.
   # Two questions: is anything under a known advisory, and is anything under a
@@ -127,7 +127,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          path: starkit
+          path: starcore
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: bstar/${{ matrix.app }}
@@ -141,8 +141,8 @@ jobs:
         run: sudo apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libges-1.0-dev libcairo2-dev libwayland-dev libxkbcommon-dev libudev-dev libgbm-dev libegl1-mesa-dev libgles2-mesa-dev libpixman-1-dev
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
         with:
-          workspaces: consumer -> target/kit-compat
-      - run: python3 starkit/scripts/check-consumer.py consumer --kit starkit
+          workspaces: consumer -> target/core-compat
+      - run: python3 starcore/scripts/check-consumer.py consumer --core starcore
 
   native-graphics:
     strategy:
@@ -180,7 +180,7 @@ jobs:
         if: runner.os == 'Linux'
         run: python3 scripts/check-starter.py --candidate --artifacts ui-gallery
         env:
-          STAR_KIT_STARTER_NO_MEDIA: "1"
+          STAR_CORE_STARTER_NO_MEDIA: "1"
       - name: Interactive Kitty pixels on Linux
         if: runner.os == 'Linux'
         run: |
@@ -188,12 +188,12 @@ jobs:
           xvfb-run -a python3 scripts/test-application-ui.py \
             --kitty "$RUNNER_TEMP/kitty-proof/runtime/bin/kitty" \
             --kitten "$RUNNER_TEMP/kitty-proof/runtime/bin/kitten" \
-            --binary "$PWD/target/external-starter/debug/starkit-starter" \
+            --binary "$PWD/target/external-starter/debug/starcore-starter" \
             --output application-ui-proof --display-server x11
           xvfb-run -a python3 scripts/test-live-canvas.py \
             --kitty "$RUNNER_TEMP/kitty-proof/runtime/bin/kitty" \
             --kitten "$RUNNER_TEMP/kitty-proof/runtime/bin/kitten" \
-            --example "$PWD/target/external-starter/debug/starkit-live-canvas" --output live-canvas-proof
+            --example "$PWD/target/external-starter/debug/starcore-live-canvas" --output live-canvas-proof
           xvfb-run -a "$RUNNER_TEMP/kitty-proof/python/bin/python" scripts/test-fractional-background.py \
             --example "$PWD/target/debug/examples/terminal-graphics" --output fractional-background
           xvfb-run -a "$RUNNER_TEMP/kitty-proof/python/bin/python" scripts/test-kitty-interactive.py \
@@ -207,7 +207,7 @@ jobs:
       - name: Atomic presentation during slow uploads
         if: runner.os == 'Linux'
         env:
-          STAR_KIT_REFRESH_FIXTURE: atomic-refresh-fixture
+          STAR_CORE_REFRESH_FIXTURE: atomic-refresh-fixture
         run: |
           cargo test --features terminal-graphics --lib slow_uploads_keep_the_previous_frame_visible_until_the_whole_swap
           LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a python3 scripts/test-atomic-refresh.py \

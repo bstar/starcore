@@ -149,7 +149,7 @@ impl KeySpec {
 /// key itself, which is how a binding on the slash is written:
 ///
 /// ```
-/// use starkit::keymap::alternatives;
+/// use starcore::keymap::alternatives;
 /// let keys: Vec<&str> = alternatives("ctrl+f / /").collect();
 /// assert_eq!(keys, ["ctrl+f", "/"]);
 /// ```

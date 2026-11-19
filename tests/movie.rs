@@ -1,5 +1,5 @@
 #![cfg(feature = "media")]
-use starkit::media::{
+use starcore::media::{
     playback::Player,
     proxy,
     tracks::{self, PlaybackOptions, Selection},
@@ -269,7 +269,7 @@ fn hdr_shadows_preserve_reference_luminance_in_playback_and_poster() {
     )
     .unwrap();
     let frame = player.frames.recv_timeout(Duration::from_secs(5)).unwrap();
-    let poster = starkit::media::poster(&path, Arc::new(AtomicBool::new(false))).unwrap();
+    let poster = starcore::media::poster(&path, Arc::new(AtomicBool::new(false))).unwrap();
     for pixels in [&frame.pixels, &poster.pixels] {
         let values: Vec<_> = (0..6)
             .map(|i| pixels.get_pixel(i * 16 + 8, 8).0[0])
@@ -325,7 +325,7 @@ fn hdr_saturated_highlights_keep_their_hue_in_playback_poster_and_proxy() {
     };
     let player = Player::file_with_options(path.clone(), 0.0, options.clone()).unwrap();
     let frame = player.frames.recv_timeout(Duration::from_secs(5)).unwrap();
-    let poster = starkit::media::poster(&path, Arc::new(AtomicBool::new(false))).unwrap();
+    let poster = starcore::media::poster(&path, Arc::new(AtomicBool::new(false))).unwrap();
     let proxy_path = root.path().join("proxy.ts");
     proxy::encode_selected_to_fit(
         &path,
@@ -411,7 +411,7 @@ fn decoded_colors_match_the_source_pixel_format() {
 #[test]
 fn original_ssh_ranges_preserve_full_resolution_and_seek_generations() {
     use base64::Engine;
-    use starkit::terminal_graphics::{
+    use starcore::terminal_graphics::{
         media::{Frontend, Host, ToClient},
         protocol::{ClientMessage, ServerMessage},
     };

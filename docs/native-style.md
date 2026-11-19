@@ -1,6 +1,6 @@
 # Default native style
 
-`native_surface::style::Style` is KIT's default graphical visual language,
+`native_surface::style::Style` is CORE's default graphical visual language,
 extracted from STAR/AMP's Classic Rack. It owns the palette, compact physical
 text sizes, original 1x/2x panel artwork, title strips, inset wells, centered
 controls, local hover fills, selection rows, meters and timeline/ledger marks.
@@ -10,7 +10,7 @@ STAR/AMP and STAR/REEL consume it; the independent starter demonstrates it.
 A minimal panel needs no asset loader or private color constants:
 
 ```rust
-use starkit::native_surface::{style::Style, PixelRect};
+use starcore::native_surface::{style::Style, PixelRect};
 
 let style = Style::default();
 let mut panel = style.panel(360, 220, "CAPTURE");
@@ -19,7 +19,7 @@ style.button(&mut panel, PixelRect::new(12, 78, 160, 28), "Microphone", "mic", f
 style.primary_button(&mut panel, PixelRect::new(12, 120, 160, 28), "Record", "record", false);
 ```
 
-Action strings remain opaque. The application interprets `panel.hits`; KIT's
+Action strings remain opaque. The application interprets `panel.hits`; CORE's
 frontend paints hover fills without changing controller state. Button text uses
 measured shaping and real centering, including Unicode and clipped long labels.
 The pointer target retains its full requested rectangle around the compact face.
@@ -29,7 +29,7 @@ With `terminal-graphics`, `style.scene(viewport)` creates a matching scene and
 `style.mount(&mut scene, panel, x, y)?` installs one physical placement for pixels,
 clipping and pointer projection. It validates bounds and keeps surfaces after a
 Menu/Dialog marker in the overlay. The starter uses these public methods outside
-KIT's workspace. `Palette` is now a generic style type; `media_controls::Palette`
+CORE's workspace. `Palette` is now a generic style type; `media_controls::Palette`
 remains a compatible re-export with the same serialized fields.
 
 Negotiate artwork with `style.with_native_skins(capabilities.native_skins)`.
@@ -37,7 +37,7 @@ The primitive fallback keeps the same palette and layout without image assets.
 The palette and controls also compile without default features; graphics-only
 builds do not link FFmpeg or audio devices. This native style does not replace
 cell theme resolution or force existing applications to discard their themes.
-`Style::new(Palette::from_theme(&theme))` uses existing KIT theme roles, and
+`Style::new(Palette::from_theme(&theme))` uses existing CORE theme roles, and
 `metrics` exposes the shared padding, gap, title/control heights and text sizes.
 The default construction uses Classic's original reference palette.
 
@@ -48,12 +48,12 @@ source before presentation; do not enlarge a finished UI image. Low-level
 musical artwork and specialized Silver treatment remain its domain adapter.
 
 This is part of the untagged 0.9 candidate. Development applications pin an
-immutable candidate revision and build without a sibling KIT checkout. Release
+immutable candidate revision and build without a sibling CORE checkout. Release
 tags remain separate. To check newer local changes without rewriting a
 consumer's git-sourced lock, use its candidate wrapper:
 
 ```sh
-CARGO_TARGET_DIR="$PWD/target" bash scripts/check-kit.sh --cargo build --release --offline
+CARGO_TARGET_DIR="$PWD/target" bash scripts/check-core.sh --cargo build --release --offline
 ```
 
 Use the shared [theme picker](themes.md#shared-picker) for Alt+T theme selection;
@@ -61,14 +61,14 @@ Use the shared [theme picker](themes.md#shared-picker) for Alt+T theme selection
 
 ## Dense workspaces
 
-KIT also provides quiet workspace composition through `workspace_panel`, `tool`,
+CORE also provides quiet workspace composition through `workspace_panel`, `tool`,
 `property`, `section`, `numeric` and `time_ruler`. These use `Style.workspace`
 palette roles: neutral panels, shallow control fills and fine separators. They
 retain the selected theme and keep accent colors for active modes and selection.
 Classic's artwork remains available for compact instruments and media players.
 
 `workspace_panel` opts into `Surface::with_ui_text()`, following STAR/FLUX:
-the attaching display's terminal family, shaped and rasterized by KIT at physical
+the attaching display's terminal family, shaped and rasterized by CORE at physical
 pixel sizes. Hosted UI controls inherit the same monospace policy with a 12 px
 body baseline; explicit headlines retain their size. Cell fallback stays on the
 terminal grid. Applications must not substitute their own fonts or renderers.
@@ -89,7 +89,7 @@ REEL owns fitting and manual zoom, track names, clip edits and recording setting
 The application owns capture state and keeps these guides outside saved media.
 
 Use `Style::modal_panel` for dialogs: quiet workspace chrome with a continuous
-two-pixel theme-accent focus border. KIT’s theme picker and REEL’s audio and
+two-pixel theme-accent focus border. CORE’s theme picker and REEL’s audio and
 text dialogs share it.
 
 `Style::keycaps("Ctrl + Shift + S", scale, max_width)` creates a compact,
@@ -109,7 +109,7 @@ local hover changes that can share a controller revision. The frontend uses that
 snapshot for live-canvas holes, video, overlays and hit geometry. A newer scene
 cannot reposition a live layer over an older frame while rasterization is pending.
 
-KIT restores cached artwork on focus return. Ctrl+L repaints all graphical layers
+CORE restores cached artwork on focus return. Ctrl+L repaints all graphical layers
 without replacing the native renderer, clearing its asset cache or restarting the
 application. Embedded keyboard capture retains its application's Ctrl+L shortcut.
 Static live canvases and paused video retain their pixels for restoration without

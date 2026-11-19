@@ -1,4 +1,4 @@
-"""Fixed STAR/KIT window operation, invoked locally through Kitty remote control.
+"""Fixed STAR/CORE window operation, invoked locally through Kitty remote control.
 No host-provided command, identifier, or filesystem path is executed.
 """
 import json
@@ -208,7 +208,7 @@ def handle_result(args, result, target_window_id, boss):
         raise RuntimeError('Kitty window no longer exists')
     pointer_hide = len(args) == 2 and args[1].startswith('pointer-hide:') and args[1].split(':', 1)[1].isdigit()
     if len(args) != 2 or (not pointer_hide and args[1] not in ('enter', 'leave', 'leave-cleanup', 'cursor-hide', 'cursor-show', 'pointer-show')):
-        raise ValueError('Invalid STAR/KIT fullscreen action')
+        raise ValueError('Invalid STAR/CORE fullscreen action')
     if pointer_hide or args[1] == 'pointer-show':
         pointer_visibility(boss, window, pointer_hide, int(args[1].split(':', 1)[1]) if pointer_hide else None)
         return

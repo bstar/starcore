@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the standalone starter outside KIT; optionally use the candidate source."""
+"""Build the standalone starter outside CORE; optionally use the candidate source."""
 import argparse
 import json
 import os
@@ -13,23 +13,23 @@ p.add_argument("--candidate", action="store_true")
 p.add_argument("--release", action="store_true", help="Build the interactive preview in release mode")
 p.add_argument("--artifacts", type=Path, help="Retain gallery PNG and cell text for visual review")
 a = p.parse_args()
-kit = Path(__file__).resolve().parents[1]
-with tempfile.TemporaryDirectory(prefix="starkit-external-") as directory:
+core = Path(__file__).resolve().parents[1]
+with tempfile.TemporaryDirectory(prefix="starcore-external-") as directory:
     root = Path(directory)
-    shutil.copytree(kit / "examples/starter", root / "app", ignore=shutil.ignore_patterns("target", "Cargo.lock"))
+    shutil.copytree(core / "examples/starter", root / "app", ignore=shutil.ignore_patterns("target", "Cargo.lock"))
     root = root / "app"
     if a.candidate:
         manifest = root / "Cargo.toml"
         text = manifest.read_text()
         import re
-        text = re.sub(r'starkit = \{[^}]+\}', 'starkit = { path = ' + json.dumps(str(kit)) + ', default-features = false }', text)
+        text = re.sub(r'starcore = \{[^}]+\}', 'starcore = { path = ' + json.dumps(str(core)) + ', default-features = false }', text)
         manifest.write_text(text)
     env = dict(os.environ)
-    env.setdefault("CARGO_TARGET_DIR", str(kit / "target" / "external-starter"))
+    env.setdefault("CARGO_TARGET_DIR", str(core / "target" / "external-starter"))
     def cargo(*args, **kwargs):
         return subprocess.run(["cargo", *args], cwd=root, env=env, check=True, **kwargs)
-    feature = ("--features", "native") if env.get("STAR_KIT_STARTER_NO_MEDIA") == "1" else ("--all-features",)
-    # Dependency patches are not inherited from KIT. Guard the standalone
+    feature = ("--features", "native") if env.get("STAR_CORE_STARTER_NO_MEDIA") == "1" else ("--all-features",)
+    # Dependency patches are not inherited from CORE. Guard the standalone
     # manifest so copying it cannot silently restore the crashing 0.29 parser.
     parser_source = cargo("tree", "-i", "crossterm", capture_output=True, text=True).stdout
     assert "d4e9929f" in parser_source, "Starter lost the zero-coordinate parser fix"

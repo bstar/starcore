@@ -1,5 +1,5 @@
 //! Default STAR native visual language, extracted from AMP's Classic Rack.
-//! Applications own content and actions; KIT owns palette roles and chrome.
+//! Applications own content and actions; CORE owns palette roles and chrome.
 use super::{
     classic::{self, Colors},
     HitRegion, HoverFill, PixelRect as R, Primitive, Surface,
@@ -198,7 +198,7 @@ impl Palette {
             _ => Self::from_theme(theme),
         }
     }
-    /// Resolve a graphical palette from KIT's existing theme roles.
+    /// Resolve a graphical palette from CORE's existing theme roles.
     pub fn from_theme(theme: &crate::theme::Theme) -> Self {
         let rgb = |c: crate::theme::color::Rgb| [c.r, c.g, c.b];
         Self {
@@ -703,7 +703,7 @@ pub fn close_button(surface: &mut Surface, rect: R, colors: &Colors, action: &st
     });
 }
 /// AMP's compact non-transport control face. State belongs to the caller;
-/// neither actions nor player behavior are interpreted by KIT.
+/// neither actions nor player behavior are interpreted by CORE.
 #[allow(clippy::too_many_arguments)]
 pub fn minimal_button(
     s: &mut Surface,

@@ -128,7 +128,7 @@ fn child(case: &str, timeout_ms: u64) -> Running {
     }
     let mut cmd = Command::new(std::env::current_exe().unwrap());
     cmd.args(["--exact", "probe_child", "--nocapture"])
-        .env("KIT_PROBE_CHILD", case)
+        .env("CORE_PROBE_CHILD", case)
         .env("STAR_GRAPHICS_PROBE_TIMEOUT_MS", timeout_ms.to_string())
         .env("TERM", "xterm-kitty")
         .env_remove("TERM_PROGRAM")
@@ -262,11 +262,11 @@ fn attributes() -> (u64, u64, u64, u64, Vec<u8>) {
 }
 #[test]
 fn probe_child() {
-    use starkit::crossterm::{
+    use starcore::crossterm::{
         event::{self, Event, KeyCode},
         terminal,
     };
-    let Ok(case) = std::env::var("KIT_PROBE_CHILD") else {
+    let Ok(case) = std::env::var("CORE_PROBE_CHILD") else {
         return;
     };
     if case == "raw" {
@@ -289,7 +289,7 @@ fn probe_child() {
     #[cfg(target_os = "linux")]
     let threads = std::fs::read_dir("/proc/self/task").unwrap().count();
     let began = Instant::now();
-    let graphics = starkit::graphics::Graphics::probe_if_tty(starkit::graphics::Mode::Auto);
+    let graphics = starcore::graphics::Graphics::probe_if_tty(starcore::graphics::Mode::Auto);
     assert!(began.elapsed() < Duration::from_secs(3));
     assert_eq!(
         attributes(),
@@ -329,7 +329,7 @@ fn probe_child() {
     );
     #[cfg(feature = "terminal-graphics")]
     {
-        use starkit::terminal_graphics::capabilities::{Capabilities, PixelGeometry};
+        use starcore::terminal_graphics::capabilities::{Capabilities, PixelGeometry};
         assert_eq!(
             Capabilities::detected(&graphics).pixel_geometry,
             if graphics.cell_size().is_some() {

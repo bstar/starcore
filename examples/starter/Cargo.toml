@@ -1,5 +1,5 @@
 [package]
-name = "starkit-starter"
+name = "starcore-starter"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.90"
@@ -9,10 +9,10 @@ publish = false
 [workspace]
 [features]
 default = []
-native = ["starkit/terminal-graphics"]
-media = ["native", "starkit/media"]
+native = ["starcore/terminal-graphics"]
+media = ["native", "starcore/media"]
 [dependencies]
-starkit = { git = "https://github.com/bstar/starkit", rev = "11d6caa394e0c7ae104dd3ecd12387cc05b95b77", version = "0.13", default-features = false }
+starcore = { git = "https://github.com/bstar/starcore", rev = "11d6caa394e0c7ae104dd3ecd12387cc05b95b77", version = "0.13", default-features = false }
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

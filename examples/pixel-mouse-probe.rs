@@ -1,4 +1,4 @@
-use starkit::terminal_graphics::{
+use starcore::terminal_graphics::{
     client::{self, Launch},
     protocol::*,
     session::{self, Controller},
@@ -31,7 +31,7 @@ impl Controller for Probe {
         }
     }
     fn scene(&mut self, v: Viewport) -> Scene {
-        let b = starkit::ratatui::buffer::Buffer::empty(starkit::ratatui::layout::Rect::new(
+        let b = starcore::ratatui::buffer::Buffer::empty(starcore::ratatui::layout::Rect::new(
             0, 0, v.columns, v.rows,
         ));
         Scene::from_buffer(&b, v, 1)

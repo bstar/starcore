@@ -39,7 +39,7 @@ public enum SSHError: Error, LocalizedError, Equatable {
         case .authentication: return "SSH sign-in failed. Check the account and password or private key."
         case .timeout: return "The SSH movie service did not respond in time."
         case .disconnected: return "The SSH movie connection closed."
-        case .invalidBootstrap: return "The host did not return a compatible STAR/KIT movie session."
+        case .invalidBootstrap: return "The host did not return a compatible STAR/CORE movie session."
         case .unsupportedKey: return "Use an unencrypted OpenSSH Ed25519 key, a P-256 PEM key, or password authentication."
         }
     }

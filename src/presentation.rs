@@ -72,7 +72,7 @@ impl Environment {
             colorterm: var("COLORTERM"),
             utf8: locale.contains("utf-8") || locale.contains("utf8"),
             no_color: std::env::var_os("NO_COLOR").is_some_and(|v| !v.is_empty()),
-            ascii: var("STAR_KIT_ASCII") == "1",
+            ascii: var("STAR_CORE_ASCII") == "1",
             ssh: std::env::var_os("SSH_CONNECTION").is_some()
                 || std::env::var_os("SSH_TTY").is_some(),
             multiplexer: std::env::var_os("TMUX").is_some() || std::env::var_os("STY").is_some(),

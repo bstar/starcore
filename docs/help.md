@@ -16,7 +16,7 @@ the footer's `Esc close` label can also be clicked. Results and details accept
 wheel input independently, using their painted geometry for routing.
 
 ```rust
-use starkit::help::{Command, Guide};
+use starcore::help::{Command, Guide};
 let mut help = Guide::new("MY APP", vec![
     Command::new("microphone", "Choose microphone", "Audio")
         .shortcut("m")
@@ -53,12 +53,12 @@ on edits; painting does not repeat fuzzy search.
 
 For native presentation, get `Guide::native_rect` from the physical viewport,
 render `native`, mount after a `Component::Menu`, and route `pointer_native`
-with those exact bounds. Use KIT's UI font and palette. For cell fallback, call
+with those exact bounds. Use CORE's UI font and palette. For cell fallback, call
 `render_cell` and `pointer_cell` with the same available area. Instructions wrap
 and scroll in both modes; small windows stack results above details.
 
-This is an additive API in the unreleased KIT 0.9 candidate. The existing
+This is an additive API in the unreleased CORE 0.9 candidate. The existing
 `keymap::HelpView` remains compatible for consumers that have not migrated.
 AMP derives its shortcut/gesture entries from the existing dispatch tables;
 REEL supplies a feature catalogue including precise command syntax. Neither
-application puts playback, recording or project-editing logic into KIT.
+application puts playback, recording or project-editing logic into CORE.

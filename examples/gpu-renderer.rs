@@ -1,6 +1,6 @@
 //! Compare changing CPU/GPU scenes, including hardware readback, without a window.
 use anyhow::{ensure, Context, Result};
-use starkit::{
+use starcore::{
     native_surface::{PixelRect, Surface},
     terminal_graphics::{
         protocol::{Component, ImageScale, Rect, Scene, Viewport},
@@ -17,7 +17,7 @@ fn scene(width: u32, height: u32, index: usize) -> Scene {
         generation: 1,
     };
     let mut scene = Scene::from_buffer(
-        &starkit::ratatui::buffer::Buffer::empty(starkit::ratatui::layout::Rect::new(
+        &starcore::ratatui::buffer::Buffer::empty(starcore::ratatui::layout::Rect::new(
             0, 0, v.columns, v.rows,
         )),
         v,
@@ -27,7 +27,7 @@ fn scene(width: u32, height: u32, index: usize) -> Scene {
     let mut surface = Surface::new(width as u16, height as u16, "#151a24".into()).with_ui_text();
     surface.text(
         PixelRect::new(24, 18, (width - 48).min(600) as u16, 35),
-        "STAR / KIT    Hardware scene renderer",
+        "STAR / CORE    Hardware scene renderer",
         "#dce7f4",
         22,
         true,
@@ -64,7 +64,7 @@ fn scene(width: u32, height: u32, index: usize) -> Scene {
     // Include a fractional vector path and a transparent-backed icon.
     surface
         .nodes
-        .push(starkit::native_surface::Primitive::Path {
+        .push(starcore::native_surface::Primitive::Path {
             rect: PixelRect::new(width.saturating_sub(130) as u16, 20, 100, 60),
             points: vec![[0, 50], [30, 4], [65, 39], [99, 8]],
             color: "#d8aa76".into(),
@@ -79,9 +79,9 @@ fn scene(width: u32, height: u32, index: usize) -> Scene {
         },
         surface,
     });
-    let mut pixels = starkit::image::RgbaImage::new(24, 16);
+    let mut pixels = starcore::image::RgbaImage::new(24, 16);
     for (x, y, p) in pixels.enumerate_pixels_mut() {
-        *p = starkit::image::Rgba(if x < 12 {
+        *p = starcore::image::Rgba(if x < 12 {
             [240, 80, 60, 255]
         } else if y < 8 {
             [50, 210, 90, 160]
@@ -89,7 +89,7 @@ fn scene(width: u32, height: u32, index: usize) -> Scene {
             [60, 130, 240, 255]
         });
     }
-    let png = starkit::terminal_graphics::assets::encode_png(&pixels).unwrap();
+    let png = starcore::terminal_graphics::assets::encode_png(&pixels).unwrap();
     scene.components.push(Component::Image {
         rect: Rect {
             x: v.columns.saturating_sub(21),
@@ -121,7 +121,7 @@ fn main() -> Result<()> {
     let out = PathBuf::from(
         args.first()
             .map(String::as_str)
-            .unwrap_or("/tmp/starkit-gpu"),
+            .unwrap_or("/tmp/starcore-gpu"),
     );
     let width = args.get(1).map(|s| s.parse()).transpose()?.unwrap_or(1920);
     let height = args.get(2).map(|s| s.parse()).transpose()?.unwrap_or(1080);

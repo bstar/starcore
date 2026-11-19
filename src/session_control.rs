@@ -23,7 +23,7 @@ pub const VERSION: u32 = 1;
 const REQUEST_LIMIT: u64 = 32 * 1024;
 const RESPONSE_LIMIT: usize = 1024 * 1024;
 
-/// Application-specific operations. Session identity is checked by KIT first.
+/// Application-specific operations. Session identity is checked by CORE first.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Operation {

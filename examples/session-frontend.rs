@@ -1,17 +1,17 @@
 //! Presentation-only client: runs on Linux/macOS, with no application backend.
 use anyhow::{bail, Context, Result};
-use starkit::terminal_graphics::client::{self, Launch};
+use starcore::terminal_graphics::client::{self, Launch};
 fn main() -> Result<()> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
-    let paths = starkit::paths::Paths::new(
-        "starkitfrontend",
-        "STARKITFRONTEND_DIR",
-        "STARKITFRONTEND_CONFIG_DIR",
+    let paths = starcore::paths::Paths::new(
+        "starcorefrontend",
+        "STARCOREFRONTEND_DIR",
+        "STARCOREFRONTEND_CONFIG_DIR",
     );
     let _logging = if args.iter().any(|a| a == "--help" || a == "-h") {
         None
     } else {
-        Some(starkit::logging::init(&paths, false)?)
+        Some(starcore::logging::init(&paths, false)?)
     };
     if args.first().is_some_and(|a| a == "--terminal-frontend") {
         return client::run_terminal_socket_with_events(
@@ -20,7 +20,7 @@ fn main() -> Result<()> {
         );
     }
     if args.iter().any(|a| a == "--help" || a == "-h") {
-        println!("STAR/KIT session frontend\n\nstar-kit-frontend --ssh HOST --project REMOTE_DIRECTORY [--session NAME] [--executable starreel] [--ssh-config FILE]\n\nRuns video presentation and audio output locally; recording and apps stay on the host.\nThe presentation terminal must support Kitty graphics. Build with terminal-graphics,media for H.264 live preview and audio. The remote executable must support streamed live canvases.");
+        println!("STAR/CORE session frontend\n\nstar-core-frontend --ssh HOST --project REMOTE_DIRECTORY [--session NAME] [--executable starreel] [--ssh-config FILE]\n\nRuns video presentation and audio output locally; recording and apps stay on the host.\nThe presentation terminal must support Kitty graphics. Build with terminal-graphics,media for H.264 live preview and audio. The remote executable must support streamed live canvases.");
         return Ok(());
     }
     let mut host = None;

@@ -8,14 +8,14 @@ import shutil
 import subprocess
 import tempfile
 
-kit = Path(__file__).resolve().parents[1]
-with tempfile.TemporaryDirectory(prefix="starkit-live-consumer-") as directory:
+core = Path(__file__).resolve().parents[1]
+with tempfile.TemporaryDirectory(prefix="starcore-live-consumer-") as directory:
     app = Path(directory) / "app"
-    shutil.copytree(kit / "examples/live-canvas", app, ignore=shutil.ignore_patterns("target", "Cargo.lock"))
+    shutil.copytree(core / "examples/live-canvas", app, ignore=shutil.ignore_patterns("target", "Cargo.lock"))
     manifest = app / "Cargo.toml"
-    manifest.write_text(re.sub(r'starkit = \{[^}]+\}', 'starkit = { path = ' + json.dumps(str(kit)) + ', default-features = false, features = ["terminal-graphics"] }', manifest.read_text()))
+    manifest.write_text(re.sub(r'starcore = \{[^}]+\}', 'starcore = { path = ' + json.dumps(str(core)) + ', default-features = false, features = ["terminal-graphics"] }', manifest.read_text()))
     env = dict(os.environ)
-    env.setdefault("CARGO_TARGET_DIR", str(kit / "target/external-starter"))
+    env.setdefault("CARGO_TARGET_DIR", str(core / "target/external-starter"))
     def cargo(*args, **kwargs):
         return subprocess.run(["cargo", *args], cwd=app, env=env, check=True, **kwargs)
     cargo("clippy", "--all-targets", "--", "-D", "warnings", "-A", "dead_code")

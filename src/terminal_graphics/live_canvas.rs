@@ -175,7 +175,9 @@ impl Transport {
         self.slots.values().any(|slot| !slot.closed)
     }
     pub fn new() -> Result<Self> {
-        let root = tempfile::Builder::new().prefix("starkit-live-").tempdir()?;
+        let root = tempfile::Builder::new()
+            .prefix("starcore-live-")
+            .tempdir()?;
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(root.path(), std::fs::Permissions::from_mode(0o700))?;
         Ok(Self {
@@ -434,7 +436,7 @@ pub(crate) fn import(descriptor: &Descriptor, local: bool) -> Result<Arc<crate::
     ensure!(
         parent
             .file_name()
-            .is_some_and(|n| n.to_string_lossy().starts_with("starkit-live-"))
+            .is_some_and(|n| n.to_string_lossy().starts_with("starcore-live-"))
             && name.to_string_lossy().starts_with("frame-"),
         "Invalid live frame path"
     );
