@@ -8,6 +8,14 @@ On 0.x, an API change is a minor bump and a fix is a patch.
 
 ## [Unreleased]
 
+## [0.25.1] - 2026-11-19
+
+### Fixed
+
+- A view that re-executes itself (a machine switch, or returning to the local
+  view) no longer fails with "File exists": each process image creates its own
+  private Kitty helper directory instead of one named only by PID.
+
 ## [0.25.0] - 2026-11-19
 
 ### Changed
