@@ -21,12 +21,31 @@ enum Action {
     Cursor(bool),
     Pointer(bool),
 }
+/// A new private directory for this process image's Kitty helper. A view that
+/// re-executes itself keeps its PID, and the previous image's directory may
+/// still exist, so the name also carries a timestamp and the directory is
+/// always created exclusively, never reused.
+fn private_root() -> Result<PathBuf> {
+    use std::os::unix::fs::DirBuilderExt;
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |time| time.as_nanos());
+    for attempt in 0..16_u32 {
+        let root = std::env::temp_dir().join(format!(
+            "star-core-window-{}-{stamp:x}-{attempt}",
+            std::process::id()
+        ));
+        match std::fs::DirBuilder::new().mode(0o700).create(&root) {
+            Ok(()) => return Ok(root),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error).context("Create the Kitty window helper directory"),
+        }
+    }
+    anyhow::bail!("Could not create a private Kitty window helper directory")
+}
 impl Window {
     pub fn new() -> Result<Self> {
-        use std::os::unix::fs::PermissionsExt;
-        let root = std::env::temp_dir().join(format!("star-core-window-{}", std::process::id()));
-        std::fs::create_dir(&root)?;
-        std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o700))?;
+        let root = private_root()?;
         let path = root.join("fullscreen.py");
         std::fs::write(
             &path,
@@ -152,6 +171,24 @@ fn terminal_command(path: &std::path::Path, id: &str, action: &str) -> Result<Ve
     Ok(wire)
 }
 
+#[cfg(test)]
+mod private_root_tests {
+    #[test]
+    fn each_image_gets_a_new_private_directory() {
+        use std::os::unix::fs::PermissionsExt;
+        let first = super::private_root().unwrap();
+        let second = super::private_root().unwrap();
+        assert_ne!(
+            first, second,
+            "a re-executed view must not reuse the old directory"
+        );
+        for root in [first, second] {
+            let mode = std::fs::metadata(&root).unwrap().permissions().mode();
+            assert_eq!(mode & 0o777, 0o700);
+            std::fs::remove_dir(root).unwrap();
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
