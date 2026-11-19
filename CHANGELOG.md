@@ -8,6 +8,12 @@ On 0.x, an API change is a minor bump and a fix is a patch.
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-11-18
+
+First tagged release since 0.8.1. It collects the 0.9 to 0.24 development
+candidates that applications pinned by revision, including the 0.19 fleet
+typography, 0.23 workspace interactions and 0.24 movie streaming.
+
 ### Added (0.24 movie streaming)
 
 - Authenticated adaptive HLS with seekable VOD playlists, per-segment lazy FFmpeg encoding, HEVC hardware probing, H.264 software fallback, MKV input and AAC audio conversion. Bound each of two movie caches to 384 MiB; stop codec workers on session shutdown. Existing original-file clients remain compatible.
