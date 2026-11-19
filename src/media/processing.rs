@@ -202,7 +202,9 @@ impl Processor {
                 };
                 // Preserve shadows and in-range midtones; Hable darkened even
                 // ordinary diffuse content while compressing HDR highlights.
-                filters.push(format!("zscale=min={}:pin={}:tin={}:rin={range}:t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=mobius:param=0.3:desat=2,zscale=t=iec61966-2-1:m=gbr:r=full", matrix as i32, primaries as i32, transfer as i32));
+                // Disable highlight desaturation so bright colored titles retain
+                // their hue instead of turning white during SDR conversion.
+                filters.push(format!("zscale=min={}:pin={}:tin={}:rin={range}:t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=mobius:param=0.3:desat=0,zscale=t=iec61966-2-1:m=gbr:r=full", matrix as i32, primaries as i32, transfer as i32));
             }
             if self.bitmap.is_none() {
                 match &self.selection {

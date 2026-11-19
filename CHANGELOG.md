@@ -52,6 +52,12 @@ On 0.x, an API change is a minor bump and a fix is a patch.
 - Hosted native input preserves right/middle buttons for application context
   actions instead of discarding them. Left-control activation remains separate.
 
+### Fixed (HDR preview chroma)
+
+- Preserve saturated HDR colors when converting movie previews to SDR. Bright
+  colored titles retain their hue in playback, posters and SSH proxies instead
+  of becoming mostly white; reference shadow luminance remains unchanged.
+
 
 ### Changed (0.19 STAR/FLEET typography)
 
