@@ -1,16 +1,16 @@
-//! Bounded, just-in-time HLS. Each independently encoded fragment has its own
-//! initialization section and an explicit discontinuity, across every rendition.
-//! This gives seeking and ABR without background whole-library conversions.
+//! Bounded continuous HLS. One supervised FFmpeg timeline per rendition preserves
+//! audio/video timestamps across segments. Encoding pauses ahead of the consumer
+//! and restarts at the requested source position for uncached seeks.
 use anyhow::{bail, ensure, Context, Result};
 use serde_json::Value;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fs::File,
     io::{Read, Seek, SeekFrom},
     path::{Path, PathBuf},
     process::{Command, Stdio},
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU32, Ordering},
         Arc, Mutex, OnceLock,
     },
     time::{Duration, Instant},
@@ -147,6 +147,8 @@ fn encoder(stop: &AtomicBool) -> Encoder {
                 c.args([
                     "-preset",
                     "veryfast",
+                    "-forced-idr",
+                    "1",
                     "-x265-params",
                     "pools=4:frame-threads=2:log-level=error",
                 ]);
@@ -166,15 +168,477 @@ struct Quality {
     height: u32,
     rate: u32,
 }
-struct Segment {
-    file: tempfile::NamedTempFile,
-    split: u64,
-    size: u64,
-    used: Instant,
+/// Convert MP4 edit-list offsets into explicit fragment decode timestamps.
+/// HLS has one stable initialization section; seek offsets cannot live in a
+/// different edit list for every encoder job. All tracks use a shared 1-second
+/// origin, leaving room for AAC preroll without unsigned timestamp underflow.
+fn mp4_boxes(bytes: &[u8]) -> Result<Vec<(usize, usize, [u8; 4])>> {
+    let mut result = Vec::new();
+    let mut at = 0;
+    while at < bytes.len() {
+        ensure!(at + 8 <= bytes.len(), "Truncated MP4 box");
+        let size = u32::from_be_bytes(bytes[at..at + 4].try_into().unwrap()) as usize;
+        ensure!(
+            size >= 8 && size <= bytes.len() - at,
+            "Invalid MP4 box size"
+        );
+        result.push((at, size, bytes[at + 4..at + 8].try_into().unwrap()));
+        at += size;
+    }
+    Ok(result)
 }
+fn box_child<'a>(bytes: &'a [u8], kind: &[u8; 4]) -> Result<&'a [u8]> {
+    for (at, size, name) in mp4_boxes(bytes)? {
+        if &name == kind {
+            return Ok(&bytes[at + 8..at + size]);
+        }
+    }
+    bail!("Missing MP4 {}", String::from_utf8_lossy(kind))
+}
+fn fullbox_time_scale(bytes: &[u8]) -> Result<u32> {
+    ensure!(bytes.len() >= 4, "Truncated MP4 full box");
+    let at = if bytes[0] == 1 { 20 } else { 12 };
+    ensure!(at + 4 <= bytes.len(), "Truncated MP4 time scale");
+    let value = u32::from_be_bytes(bytes[at..at + 4].try_into().unwrap());
+    ensure!(value > 0, "Invalid MP4 time scale");
+    Ok(value)
+}
+fn without_box(bytes: &[u8], kind: &[u8; 4]) -> Result<Vec<u8>> {
+    let mut out = Vec::new();
+    for (at, size, name) in mp4_boxes(bytes)? {
+        if &name != kind {
+            out.extend_from_slice(&bytes[at..at + size]);
+        }
+    }
+    Ok(out)
+}
+fn wrap_box(kind: &[u8; 4], body: &[u8]) -> Vec<u8> {
+    let mut result = Vec::with_capacity(body.len() + 8);
+    result.extend_from_slice(&((body.len() + 8) as u32).to_be_bytes());
+    result.extend_from_slice(kind);
+    result.extend_from_slice(body);
+    result
+}
+fn continuous_init(bytes: &[u8], logical_start: f64) -> Result<(Vec<u8>, HashMap<u32, i64>)> {
+    ensure!(
+        bytes.len() <= 256 * 1024,
+        "MP4 initialization exceeds limit"
+    );
+    let moov = box_child(bytes, b"moov")?;
+    let movie_scale = fullbox_time_scale(box_child(moov, b"mvhd")?)?;
+    let mut tracks = Vec::new();
+    let mut video_offset = None;
+    for (at, size, name) in mp4_boxes(moov)? {
+        if &name != b"trak" {
+            continue;
+        }
+        let track = &moov[at + 8..at + size];
+        let header = box_child(track, b"tkhd")?;
+        ensure!(header.len() >= 24, "Truncated MP4 track header");
+        let id_at = if header[0] == 1 { 20 } else { 12 };
+        let id = u32::from_be_bytes(header[id_at..id_at + 4].try_into().unwrap());
+        let mdia = box_child(track, b"mdia")?;
+        let scale = fullbox_time_scale(box_child(mdia, b"mdhd")?)?;
+        let handler = box_child(mdia, b"hdlr")?;
+        ensure!(handler.len() >= 12, "Truncated MP4 handler");
+        let mut offset = 0.;
+        if let Ok(edts) = box_child(track, b"edts") {
+            let list = box_child(edts, b"elst")?;
+            ensure!(list.len() >= 8, "Truncated edit list");
+            let count = u32::from_be_bytes(list[4..8].try_into().unwrap()) as usize;
+            let width = if list[0] == 1 { 20 } else { 12 };
+            ensure!(
+                count <= 16 && list.len() == 8 + count * width,
+                "Invalid MP4 edit list"
+            );
+            for n in 0..count {
+                let p = 8 + n * width;
+                let (duration, media) = if list[0] == 1 {
+                    (
+                        u64::from_be_bytes(list[p..p + 8].try_into().unwrap()) as f64,
+                        i64::from_be_bytes(list[p + 8..p + 16].try_into().unwrap()),
+                    )
+                } else {
+                    (
+                        u32::from_be_bytes(list[p..p + 4].try_into().unwrap()) as f64,
+                        i32::from_be_bytes(list[p + 4..p + 8].try_into().unwrap()) as i64,
+                    )
+                };
+                if media == -1 {
+                    offset += duration / f64::from(movie_scale);
+                } else {
+                    ensure!(media >= 0, "Invalid media edit");
+                    offset -= media as f64 / f64::from(scale);
+                    break;
+                }
+            }
+        }
+        if &handler[8..12] == b"vide" {
+            video_offset = Some(offset);
+        }
+        tracks.push((id, scale, offset));
+    }
+    let shift =
+        1. + logical_start - video_offset.context("MP4 initialization has no video clock")?;
+    let offsets = tracks
+        .into_iter()
+        .map(|(id, scale, offset)| (id, ((offset + shift) * f64::from(scale)).round() as i64))
+        .collect();
+    let mut new_moov = Vec::new();
+    for (at, size, name) in mp4_boxes(moov)? {
+        if &name == b"trak" {
+            new_moov.extend(wrap_box(
+                b"trak",
+                &without_box(&moov[at + 8..at + size], b"edts")?,
+            ));
+        } else {
+            new_moov.extend_from_slice(&moov[at..at + size]);
+        }
+    }
+    let mut init = Vec::new();
+    for (at, size, name) in mp4_boxes(bytes)? {
+        if &name == b"moov" {
+            init.extend(wrap_box(b"moov", &new_moov));
+        } else {
+            init.extend_from_slice(&bytes[at..at + size]);
+        }
+    }
+    Ok((init, offsets))
+}
+fn continuous_fragment(path: &Path, offsets: &HashMap<u32, i64>, index: u32) -> Result<()> {
+    use std::io::Write;
+    let mut file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)?;
+    let size = file.metadata()?.len();
+    ensure!(
+        size <= MAX_SEGMENT_BYTES,
+        "Encoded HLS segment exceeds size limit"
+    );
+    let mut at = 0;
+    let mut moofs = 0;
+    while at + 8 <= size {
+        file.seek(SeekFrom::Start(at))?;
+        let mut header = [0; 8];
+        file.read_exact(&mut header)?;
+        let length = u64::from(u32::from_be_bytes(header[..4].try_into().unwrap()));
+        ensure!(
+            length >= 8 && length <= size - at,
+            "Invalid HLS MP4 fragment"
+        );
+        ensure!(
+            &header[4..] != b"sidx",
+            "HLS encoder must omit segment indexes"
+        );
+        if &header[4..] == b"moof" {
+            ensure!(length <= 1024 * 1024, "MP4 fragment metadata exceeds limit");
+            let mut body = vec![0; (length - 8) as usize];
+            file.read_exact(&mut body)?;
+            for (offset, n, name) in mp4_boxes(&body)? {
+                if &name == b"mfhd" {
+                    ensure!(n >= 16, "Invalid fragment sequence header");
+                    body[offset + 12..offset + 16].copy_from_slice(&(index + 1).to_be_bytes());
+                }
+                if &name != b"traf" {
+                    continue;
+                }
+                let traf = &body[offset + 8..offset + n];
+                let tfhd = box_child(traf, b"tfhd")?;
+                ensure!(tfhd.len() >= 8, "Truncated fragment track header");
+                let id = u32::from_be_bytes(tfhd[4..8].try_into().unwrap());
+                let adjustment = *offsets.get(&id).context("Unknown fragment track clock")?;
+                let mut found = false;
+                for (child_at, child_size, kind) in mp4_boxes(traf)? {
+                    if &kind != b"tfdt" {
+                        continue;
+                    }
+                    let p = offset + 8 + child_at + 8;
+                    let version = body[p];
+                    let value = if version == 1 {
+                        ensure!(child_size >= 20, "Truncated 64-bit decode time");
+                        u64::from_be_bytes(body[p + 4..p + 12].try_into().unwrap())
+                    } else {
+                        ensure!(version == 0 && child_size >= 16, "Invalid decode time");
+                        u64::from(u32::from_be_bytes(body[p + 4..p + 8].try_into().unwrap()))
+                    };
+                    let adjusted = i128::from(value) + i128::from(adjustment);
+                    ensure!(
+                        adjusted >= 0 && adjusted <= u64::MAX as i128,
+                        "Invalid absolute media clock"
+                    );
+                    if version == 1 {
+                        body[p + 4..p + 12].copy_from_slice(&(adjusted as u64).to_be_bytes());
+                    } else {
+                        ensure!(adjusted <= u32::MAX as i128, "32-bit media clock overflow");
+                        body[p + 4..p + 8].copy_from_slice(&(adjusted as u32).to_be_bytes());
+                    }
+                    found = true;
+                }
+                ensure!(found, "Missing fragment decode clock");
+            }
+            file.seek(SeekFrom::Start(at + 8))?;
+            file.write_all(&body)?;
+            moofs += 1;
+        }
+        at += length;
+    }
+    ensure!(at == size && moofs == 1, "Invalid HLS fragment layout");
+    Ok(())
+}
+
 struct Cache {
-    segments: HashMap<(String, u32), Segment>,
+    jobs: HashMap<String, Arc<EncoderJob>>,
+    inits: HashMap<String, tempfile::NamedTempFile>,
+}
+struct EncoderJob {
+    directory: Arc<tempfile::TempDir>,
+    start: u32,
+    wanted: Arc<AtomicU32>,
+    touched: Arc<Mutex<Instant>>,
+    cancelled: Arc<AtomicBool>,
+    state: Arc<Mutex<JobState>>,
+    worker: Mutex<Option<std::thread::JoinHandle<()>>>,
+}
+#[derive(Default)]
+struct JobState {
+    finished: bool,
+    error: Option<String>,
     bytes: u64,
+    segments: usize,
+    ready: HashSet<u32>,
+}
+impl EncoderJob {
+    fn segment(&self, index: u32) -> PathBuf {
+        self.directory
+            .path()
+            .join(format!("segment-{index:010}.m4s"))
+    }
+    fn signal(pid: u32, signal: rustix::process::Signal) {
+        if let Some(pid) = rustix::process::Pid::from_raw(pid as i32) {
+            let _ = rustix::process::kill_process_group(pid, signal);
+        }
+    }
+    fn start(
+        mut command: Command,
+        directory: tempfile::TempDir,
+        start: u32,
+        budget: u64,
+        logical_start: f64,
+    ) -> Result<Arc<Self>> {
+        use std::os::unix::process::CommandExt;
+        let stderr = tempfile::tempfile()?;
+        command
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(stderr.try_clone()?)
+            .process_group(0);
+        let mut child = command.spawn().context("Start continuous HLS encoder")?;
+        let job = Arc::new(Self {
+            directory: Arc::new(directory),
+            start,
+            wanted: Arc::new(AtomicU32::new(start)),
+            touched: Arc::new(Mutex::new(Instant::now())),
+            cancelled: Arc::new(AtomicBool::new(false)),
+            state: Arc::new(Mutex::new(JobState::default())),
+            worker: Mutex::new(None),
+        });
+        let directory = job.directory.clone();
+        let wanted = job.wanted.clone();
+        let touched = job.touched.clone();
+        let cancelled = job.cancelled.clone();
+        let state = job.state.clone();
+        let worker = std::thread::Builder::new()
+            .name("star-hls-encoder".into())
+            .spawn(move || {
+                let outcome = (|| -> Result<()> {
+                    let mut paused = false;
+                    let mut clocks = None;
+                    loop {
+                        if cancelled.load(Ordering::Acquire)
+                            || touched.lock().unwrap().elapsed() > Duration::from_secs(120)
+                        {
+                            break;
+                        }
+                        let exited = child.try_wait()?;
+                        if let Some(status) = &exited {
+                            if !status.success() {
+                                let mut stderr = stderr;
+                                stderr.seek(SeekFrom::Start(0))?;
+                                let mut details = String::new();
+                                stderr.take(4096).read_to_string(&mut details)?;
+                                bail!("Continuous HLS encoder failed: {details}");
+                            }
+                        }
+                        let target = wanted.load(Ordering::Acquire);
+                        let mut files = Vec::new();
+                        let mut bytes = 0;
+                        for entry in std::fs::read_dir(directory.path())? {
+                            let entry = entry?;
+                            let length = entry.metadata()?.len();
+                            bytes += length;
+                            let name = entry.file_name().to_string_lossy().into_owned();
+                            if let Some(index) = name
+                                .strip_prefix("segment-")
+                                .and_then(|n| n.strip_suffix(".m4s"))
+                                .and_then(|n| n.parse::<u32>().ok())
+                            {
+                                ensure!(
+                                    length <= MAX_SEGMENT_BYTES,
+                                    "Encoded HLS segment exceeds size limit"
+                                );
+                                files.push((index, entry.path(), length));
+                            }
+                        }
+                        files.sort_by_key(|v| v.0);
+                        if !files.is_empty() && clocks.is_none() {
+                            let (init, offsets) = continuous_init(
+                                &std::fs::read(directory.path().join("init.mp4"))?,
+                                logical_start,
+                            )?;
+                            std::fs::write(directory.path().join("clock-init.mp4"), init)?;
+                            clocks = Some(offsets);
+                        }
+                        for (index, path, _) in &files {
+                            if !state.lock().unwrap().ready.contains(index) {
+                                continuous_fragment(
+                                    path,
+                                    clocks.as_ref().context("Missing HLS clock")?,
+                                    *index,
+                                )?;
+                                state.lock().unwrap().ready.insert(*index);
+                            }
+                        }
+
+                        // Reserve one maximum-sized in-progress segment in every job's budget.
+                        let retain = budget.saturating_sub(MAX_SEGMENT_BYTES);
+                        let mut retained = files.len();
+                        for (index, path, length) in &files {
+                            if *index < target.saturating_sub(16)
+                                || bytes > retain && *index < target.saturating_sub(1)
+                            {
+                                std::fs::remove_file(path)?;
+                                bytes = bytes.saturating_sub(*length);
+                                retained -= 1;
+                            }
+                        }
+                        ensure!(
+                            bytes <= budget + 1024 * 1024,
+                            "Continuous encoder exceeded rolling cache budget"
+                        );
+                        {
+                            let mut value = state.lock().unwrap();
+                            value.bytes = bytes;
+                            value.segments = retained;
+                            value.ready.retain(|index| {
+                                directory
+                                    .path()
+                                    .join(format!("segment-{index:010}.m4s"))
+                                    .is_file()
+                            });
+                        }
+                        if exited.is_some() {
+                            break;
+                        }
+                        let ahead = files
+                            .iter()
+                            .any(|(index, _, _)| *index >= target.saturating_add(2));
+                        let should_pause = ahead
+                            || bytes >= retain
+                                && files.iter().any(|(index, _, _)| *index >= target);
+                        if should_pause != paused {
+                            Self::signal(
+                                child.id(),
+                                if should_pause {
+                                    rustix::process::Signal::STOP
+                                } else {
+                                    rustix::process::Signal::CONT
+                                },
+                            );
+                            paused = should_pause;
+                        }
+                        std::thread::sleep(Duration::from_millis(20));
+                    }
+                    Ok(())
+                })();
+                // SIGKILL works even when the bounded encoder is SIGSTOPped.
+                if child.try_wait().ok().flatten().is_none() {
+                    Self::signal(child.id(), rustix::process::Signal::KILL);
+                    let _ = child.wait();
+                }
+                let mut value = state.lock().unwrap();
+                value.finished = true;
+                if let Err(error) = outcome {
+                    value.error = Some(format!("{error:#}"));
+                }
+            })?;
+        *job.worker.lock().unwrap() = Some(worker);
+        Ok(job)
+    }
+    fn usable(&self, index: u32) -> bool {
+        if index < self.start {
+            return false;
+        }
+        if self.segment(index).is_file() {
+            return true;
+        }
+        if self.state.lock().unwrap().finished {
+            return false;
+        }
+        let target = self.wanted.load(Ordering::Acquire);
+        index >= target.saturating_sub(1) && index <= target.saturating_add(4)
+    }
+    fn part(&self, index: u32, init: bool, stop: &AtomicBool) -> Result<Part> {
+        *self.touched.lock().unwrap() = Instant::now();
+        self.wanted.fetch_max(index, Ordering::AcqRel);
+        let began = Instant::now();
+        loop {
+            ensure!(!stop.load(Ordering::Acquire), "HLS request cancelled");
+            let path = if init {
+                self.directory.path().join("clock-init.mp4")
+            } else {
+                self.segment(index)
+            };
+            // The segment is atomically renamed by FFmpeg. Its completion also
+            // guarantees the initialization section has been fully written.
+            if self.state.lock().unwrap().ready.contains(&index) {
+                if let Ok(file) = File::open(&path) {
+                    return Ok(Part {
+                        length: file.metadata()?.len(),
+                        file,
+                        offset: 0,
+                        mime: if init {
+                            "video/mp4"
+                        } else {
+                            "video/iso.segment"
+                        },
+                    });
+                }
+            }
+            let state = self.state.lock().unwrap();
+            if let Some(error) = &state.error {
+                bail!("{error}");
+            }
+            ensure!(
+                !state.finished,
+                "HLS encoder ended before the requested segment"
+            );
+            drop(state);
+            ensure!(
+                began.elapsed() < Duration::from_secs(60),
+                "HLS segment encoding timed out"
+            );
+            std::thread::sleep(Duration::from_millis(20));
+        }
+    }
+}
+impl Drop for EncoderJob {
+    fn drop(&mut self) {
+        self.cancelled.store(true, Ordering::Release);
+        if let Some(worker) = self.worker.lock().unwrap().take() {
+            let _ = worker.join();
+        }
+    }
 }
 pub(super) struct Adaptive {
     source: PathBuf,
@@ -205,7 +669,7 @@ impl Hls {
         let entries=movies.iter().map(|(id,movie)| {
             let cache=movie.cache.try_lock();
             serde_json::json!({"id":id,"fps":movie.fps,"qualities":movie.qualities.iter().map(|q|serde_json::json!({"name":q.name,"width":q.width,"height":q.height,"bitrate_bps":q.rate})).collect::<Vec<_>>(),"movie":movie.source.file_name().map(|n|n.to_string_lossy()),"encoder":movie.encoder.name(),"segment_seconds":movie.step,
-                "cache_bytes":cache.as_ref().ok().map(|c|c.bytes),"cached_segments":cache.as_ref().ok().map(|c|c.segments.len()),"busy":cache.is_err()})
+                "cache_bytes":cache.as_ref().ok().map(|c|c.jobs.values().map(|j|j.state.lock().unwrap().bytes).sum::<u64>()),"cached_segments":cache.as_ref().ok().map(|c|c.jobs.values().map(|j|j.state.lock().unwrap().segments).sum::<usize>()),"timeline":"continuous","busy":cache.is_err()})
         }).collect::<Vec<_>>();
         serde_json::json!({"movies":entries,"cache_limit_per_movie_bytes":CACHE_BYTES,"segment_limit_bytes":MAX_SEGMENT_BYTES,
             "encoder_override":std::env::var("STAR_STREAM_ENCODER").ok()})
@@ -220,9 +684,13 @@ impl Hls {
                 let Ok(mut cache) = movie.cache.try_lock() else {
                     continue;
                 };
-                cleared += cache.segments.len();
-                cache.segments.clear();
-                cache.bytes = 0;
+                cache.jobs.retain(|_, job| {
+                    let state = job.state.lock().unwrap();
+                    if state.finished {
+                        cleared += state.segments;
+                    }
+                    !state.finished
+                });
             }
         }
         serde_json::json!({"cleared_segments":cleared})
@@ -341,8 +809,8 @@ impl Adaptive {
             encoder,
             qualities,
             cache: Mutex::new(Cache {
-                segments: HashMap::new(),
-                bytes: 0,
+                jobs: HashMap::new(),
+                inits: HashMap::new(),
             }),
         })
     }
@@ -368,13 +836,17 @@ impl Adaptive {
             "Unknown quality"
         );
         let mut text=format!("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-TARGETDURATION:{}\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-INDEPENDENT-SEGMENTS\n",self.step.ceil() as u32);
+        // A continuous rendition has one initialization identity. Repeating a
+        // different MAP URI at each join makes AVFoundation reinitialize tracks.
+        text.push_str(&format!(
+            "#EXT-X-MAP:URI=\"/v1/hls/{id}/{quality}/0/init.mp4?token={token}\"\n"
+        ));
         for index in 0..self.count() {
-            if index > 0 {
-                text.push_str("#EXT-X-DISCONTINUITY\n");
-            }
             let base = format!("/v1/hls/{id}/{quality}/{index}");
             let duration = (self.duration - f64::from(index) * self.step).min(self.step);
-            text.push_str(&format!("#EXT-X-MAP:URI=\"{base}/init.mp4?token={token}\"\n#EXTINF:{duration:.6},\n{base}/media.m4s?token={token}\n"));
+            text.push_str(&format!(
+                "#EXTINF:{duration:.6},\n{base}/media.m4s?token={token}\n"
+            ));
         }
         text.push_str("#EXT-X-ENDLIST\n");
         Ok(text.into_bytes())
@@ -389,94 +861,65 @@ impl Adaptive {
             .iter()
             .find(|q| q.name == quality)
             .context("Unknown quality")?;
-        let key = (quality.to_string(), index);
-        // One encode per movie at a time. Cached reads release this lock before
-        // socket writes, so a slow client cannot retain the encoder/cache lock.
-        let mut cache = self
-            .cache
-            .lock()
-            .map_err(|_| anyhow::anyhow!("HLS cache unavailable"))?;
-        if !cache.segments.contains_key(&key) {
-            let segment = self.encode(q, index, stop)?;
-            while cache.bytes + segment.size > CACHE_BYTES {
-                let victim = cache
-                    .segments
-                    .iter()
-                    .min_by_key(|(_, s)| s.used)
-                    .map(|(k, _)| k.clone());
-                let Some(victim) = victim else {
-                    break;
-                };
-                if let Some(old) = cache.segments.remove(&victim) {
-                    cache.bytes -= old.size;
-                }
+        if init {
+            let cache = self
+                .cache
+                .lock()
+                .map_err(|_| anyhow::anyhow!("HLS cache unavailable"))?;
+            if let Some(file) = cache.inits.get(quality) {
+                let file = File::open(file.path())?;
+                return Ok(Part {
+                    length: file.metadata()?.len(),
+                    file,
+                    offset: 0,
+                    mime: "video/mp4",
+                });
             }
-            cache.bytes += segment.size;
-            cache.segments.insert(key.clone(), segment);
         }
-        let segment = cache
-            .segments
-            .get_mut(&key)
-            .context("Missing HLS segment")?;
-        segment.used = Instant::now();
-        Ok(Part {
-            file: File::open(segment.file.path())?,
-            offset: if init { 0 } else { segment.split },
-            length: if init {
-                segment.split
-            } else {
-                segment.size - segment.split
-            },
-            mime: if init {
-                "video/mp4"
-            } else {
-                "video/iso.segment"
-            },
-        })
-    }
-    fn encode(&self, q: &Quality, index: u32, stop: &AtomicBool) -> Result<Segment> {
-        if !matches!(self.encoder, Encoder::Vaapi) {
-            return self.encode_at_qp(q, index, stop, None, 45);
-        }
-        // Radeon 8060S's VAAPI bitrate-control mode emits invalid HEVC CU QP
-        // deltas on real 4K material. CQP decodes cleanly. Enforce the rendition's
-        // byte budget ourselves, retrying with coarser quantization if needed.
-        let began = Instant::now();
-        let initial = match q.name.as_str() {
-            "480" => 28,
-            "720" => 26,
-            _ => 24,
+        let job = {
+            let mut cache = self
+                .cache
+                .lock()
+                .map_err(|_| anyhow::anyhow!("HLS cache unavailable"))?;
+            if !cache.jobs.get(quality).is_some_and(|j| j.usable(index)) {
+                // Drop the old job only after any in-flight readers release it.
+                cache
+                    .jobs
+                    .insert(quality.into(), self.encoder_job(q, index)?);
+            }
+            cache.jobs[quality].clone()
         };
-        let duration = (self.duration - f64::from(index) * self.step).min(self.step);
-        let budget = ((f64::from(q.rate) * 1.2 + 192_000.0) * duration / 8.0) as u64 + 16 * 1024;
-        for qp in (initial..=48).step_by(4) {
-            let remaining = 45_u64.saturating_sub(began.elapsed().as_secs());
+        let mut part = job.part(index, init, stop)?;
+        if init {
             ensure!(
-                remaining > 0,
-                "Hardware segment exceeded its encoding deadline"
+                part.length <= 256 * 1024,
+                "HLS initialization exceeds limit"
             );
-            let segment = self.encode_at_qp(q, index, stop, Some(qp), remaining)?;
-            if segment.size <= budget {
-                return Ok(segment);
-            }
+            let mut saved = tempfile::NamedTempFile::new()?;
+            std::io::copy(&mut part.file, saved.as_file_mut())?;
+            part.file.seek(SeekFrom::Start(0))?;
+            self.cache
+                .lock()
+                .unwrap()
+                .inits
+                .entry(quality.into())
+                .or_insert(saved);
         }
-        bail!("Hardware segment could not meet the rendition bandwidth budget")
+        Ok(part)
     }
-    fn encode_at_qp(
-        &self,
-        q: &Quality,
-        index: u32,
-        stop: &AtomicBool,
-        qp: Option<u8>,
-        deadline: u64,
-    ) -> Result<Segment> {
-        let file = tempfile::NamedTempFile::new()?;
+    fn encoder_job(&self, q: &Quality, index: u32) -> Result<Arc<EncoderJob>> {
+        let directory = tempfile::tempdir()?;
         let start = f64::from(index) * self.step;
-        let duration = (self.duration - start).min(self.step);
+        let duration = self.duration - start;
+        // All jobs start AAC on the same global 1024-sample grid. Decode a
+        // small preroll and shift BOTH streams by the same amount, preserving
+        // their relative timing even when a rendition starts after a seek.
+        let decode_start = (start * 48000. / 1024.).floor() * 1024. / 48000.;
+        let preroll = start - decode_start;
         let mut c = Command::new(ffmpeg());
         c.args(["-hide_banner", "-loglevel", "error", "-nostdin", "-y"]);
         self.encoder.input(&mut c);
-        c.args(["-ss", &format!("{start:.9}"), "-threads", "4", "-i"])
+        c.args(["-ss", &format!("{decode_start:.9}"), "-threads", "4", "-i"])
             .arg(&self.source);
         c.args(["-t", &format!("{duration:.9}"), "-map", "0:v:0"]);
         if self.audio {
@@ -495,7 +938,7 @@ impl Adaptive {
         c.args([
             "-vf",
             &format!(
-                "{tone}scale={}:{},setsar=1,setpts=PTS-STARTPTS{upload}",
+                "{tone}scale={}:{},setsar=1,setpts=PTS-{preroll:.9}/TB{upload}",
                 q.width, q.height
             ),
             "-r",
@@ -503,33 +946,49 @@ impl Adaptive {
             "-c:v",
             self.encoder.name(),
         ]);
-        if let Some(qp) = qp {
-            c.args(["-rc_mode", "CQP", "-qp", &qp.to_string()]);
-        } else {
-            c.args([
-                "-b:v",
-                &q.rate.to_string(),
-                "-maxrate",
-                &(q.rate * 12 / 10).to_string(),
-                "-bufsize",
-                &(q.rate * 2).to_string(),
-            ]);
+        c.args([
+            "-b:v",
+            &q.rate.to_string(),
+            "-maxrate",
+            &(q.rate * 12 / 10).to_string(),
+            "-bufsize",
+            &(q.rate * 2).to_string(),
+            "-bf",
+            "0",
+            "-g",
+            &(self.step * self.fps.parse::<f64>().unwrap_or(24.))
+                .round()
+                .to_string(),
+            "-force_key_frames",
+            &format!(
+                "expr:gte(n,n_forced*{})",
+                (self.step * self.fps.parse::<f64>().unwrap_or(24.)).round() as u32
+            ),
+        ]);
+        if matches!(self.encoder, Encoder::Vaapi) {
+            c.args(["-rc_mode", "VBR"]);
         }
-        c.args(["-bf", "0", "-g", "360"]);
         if self.encoder.hevc() {
             c.args(["-tag:v", "hvc1", "-profile:v", "main", "-level:v", "5.1"]);
             if matches!(self.encoder, Encoder::SoftwareHevc) {
                 c.args([
                     "-preset",
                     "veryfast",
+                    "-forced-idr", "1",
                     "-x265-params",
-                    "pools=4:frame-threads=2:log-level=error",
+                    &format!("pools=4:frame-threads=2:log-level=error:open-gop=0:scenecut=0:keyint={}:min-keyint={}",(self.step*self.fps.parse::<f64>().unwrap_or(24.)).round() as u32,(self.step*self.fps.parse::<f64>().unwrap_or(24.)).round() as u32),
                 ]);
             }
         } else {
             c.args([
                 "-preset",
                 "veryfast",
+                "-sc_threshold",
+                "0",
+                "-keyint_min",
+                &(self.step * self.fps.parse::<f64>().unwrap_or(24.))
+                    .round()
+                    .to_string(),
                 "-profile:v",
                 "high",
                 "-level:v",
@@ -551,7 +1010,7 @@ impl Adaptive {
         if self.audio {
             c.args([
                 "-af",
-                "asetpts=PTS-STARTPTS",
+                &format!("asetpts=PTS-{preroll:.9}/TB"),
                 "-c:a",
                 "aac",
                 "-b:a",
@@ -562,6 +1021,8 @@ impl Adaptive {
                 "48000",
             ]);
         }
+        // Preserve the input's shared A/V clock. The native HLS muxer owns
+        // AAC packet boundaries, encoder priming and continuous fragment tfdt.
         c.args([
             "-sn",
             "-dn",
@@ -569,54 +1030,56 @@ impl Adaptive {
             "-1",
             "-map_chapters",
             "-1",
-            "-movflags",
-            "+empty_moov+default_base_moof+frag_keyframe",
-            "-frag_duration",
-            "1000000",
+            "-output_ts_offset",
+            &format!("{start:.9}"),
             "-f",
-            "mp4",
+            "hls",
+            "-hls_time",
+            &format!("{:.9}", self.step),
+            "-hls_segment_type",
+            "fmp4",
+            "-hls_segment_options",
+            "movflags=+skip_sidx",
+            "-hls_flags",
+            "independent_segments+temp_file",
+            "-hls_list_size",
+            "8",
+            "-start_number",
+            &index.to_string(),
+            "-hls_fmp4_init_filename",
+            "init.mp4",
+            "-hls_segment_filename",
         ])
-        .arg(file.path());
-        run(c, stop, deadline)?;
-        let size = file.as_file().metadata()?.len();
-        ensure!(
-            size <= MAX_SEGMENT_BYTES,
-            "Encoded segment exceeds cache limit"
-        );
-        let split = fragment_start(file.as_file().try_clone()?, size)?;
-        Ok(Segment {
-            file,
-            split,
-            size,
-            used: Instant::now(),
-        })
+        .arg(directory.path().join("segment-%010d.m4s"))
+        .arg(directory.path().join("index.m3u8"));
+        EncoderJob::start(
+            c,
+            directory,
+            index,
+            CACHE_BYTES / self.qualities.len().max(1) as u64,
+            start,
+        )
     }
-}
-fn fragment_start(mut file: File, size: u64) -> Result<u64> {
-    let mut at = 0;
-    while at + 8 <= size {
-        file.seek(SeekFrom::Start(at))?;
-        let mut header = [0; 8];
-        file.read_exact(&mut header)?;
-        if &header[4..] == b"moof" {
-            ensure!(at > 0, "Missing MP4 initialization");
-            return Ok(at);
-        }
-        let mut length = u64::from(u32::from_be_bytes(header[..4].try_into()?));
-        if length == 1 {
-            let mut extended = [0; 8];
-            file.read_exact(&mut extended)?;
-            length = u64::from_be_bytes(extended);
-        }
-        ensure!(length >= 8 && length <= size - at, "Invalid MP4 fragment");
-        at += length;
-    }
-    bail!("Encoder produced no movie fragment")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn invalid_mp4_layouts_do_not_reach_timestamp_rewriting() {
+        for bytes in [
+            vec![],
+            vec![0; 4],
+            b"\0\0\0\x04moov".to_vec(),
+            b"\0\0\0\x30moov".to_vec(),
+        ] {
+            assert!(continuous_init(&bytes, 0.).is_err());
+        }
+        for start in 0..256 {
+            let bytes = vec![start as u8; start];
+            let _ = continuous_init(&bytes, 0.);
+        }
+    }
     #[test]
     fn software_auto_avoids_unsustainable_4k_but_allows_an_explicit_cap() {
         assert_eq!(max_height(Encoder::SoftwareHevc, None), 1080);
@@ -636,15 +1099,14 @@ mod tests {
         assert!(began.elapsed() < Duration::from_secs(2));
     }
     #[test]
-    fn malformed_mp4_box_lengths_are_rejected() {
-        for bytes in [
-            &b"\0\0\0\0free"[..],
-            &b"\0\0\0\x30free"[..],
-            &b"\0\0\0\x08moof"[..],
-        ] {
-            let mut file = tempfile::tempfile().unwrap();
-            std::io::Write::write_all(&mut file, bytes).unwrap();
-            assert!(fragment_start(file, bytes.len() as u64).is_err());
-        }
+    fn continuous_jobs_cancel_and_reap_paused_encoders() {
+        let mut command = Command::new("sleep");
+        command.arg("30");
+        let job =
+            EncoderJob::start(command, tempfile::tempdir().unwrap(), 0, CACHE_BYTES, 0.).unwrap();
+        EncoderJob::signal(0, rustix::process::Signal::STOP); // invalid PID is ignored
+        let began = Instant::now();
+        drop(job);
+        assert!(began.elapsed() < Duration::from_secs(2));
     }
 }

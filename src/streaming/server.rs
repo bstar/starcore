@@ -89,6 +89,7 @@ impl Session {
 
 pub struct Server {
     pub session: Session,
+    data: Arc<std::sync::RwLock<Arc<Data>>>,
     stop: Arc<AtomicBool>,
     workers: Vec<JoinHandle<()>>,
     management: Option<super::control::Management>,
@@ -152,7 +153,9 @@ impl Server {
             "Catalog exceeds 16 MiB"
         );
         let stop = Arc::new(AtomicBool::new(false));
+        let shared = Arc::new(std::sync::RwLock::new(data.clone()));
         let mut server = Self {
+            data: shared.clone(),
             session,
             stop,
             workers: Vec::new(),
@@ -163,7 +166,7 @@ impl Server {
         };
         for _ in 0..8 {
             let listener = listener.try_clone()?;
-            let data = data.clone();
+            let shared = shared.clone();
             let stop = server.stop.clone();
             server.workers.push(
                 std::thread::Builder::new()
@@ -172,6 +175,7 @@ impl Server {
                         while !stop.load(Ordering::Acquire) {
                             match listener.accept() {
                                 Ok((mut socket, _)) => {
+                                    let data = shared.read().unwrap().clone();
                                     // Darwin inherits the listener's nonblocking flag on accept.
                                     // Workers perform bounded blocking I/O; EWOULDBLOCK must
                                     // never truncate a movie when the send buffer fills.
@@ -209,6 +213,22 @@ impl Server {
             );
         }
         Ok(server)
+    }
+    /// Atomically publish a library snapshot; in-flight requests retain their snapshot.
+    pub fn update_library(&self, resources: Vec<Resource>, mut catalog: serde_json::Value) -> Result<()> {
+        let old = self.data.read().unwrap().clone();
+        let mut files = HashMap::new(); let mut descriptions = HashMap::new();
+        for resource in resources {
+            let path = old.root.join(&resource.relative).canonicalize()?;
+            ensure!(path.starts_with(&old.root) && path.is_file(), "Media resource escapes library");
+            descriptions.insert(resource.id.clone(), resource.details);
+            ensure!(files.insert(resource.id, resource.relative).is_none(), "Duplicate resource");
+        }
+        if let Some(object) = catalog.as_object_mut() { object.insert("streaming".into(), serde_json::json!({"hls":true,"version":1})); }
+        let catalog = serde_json::to_vec(&catalog)?;
+        ensure!(catalog.len() <= 16 * 1024 * 1024, "Catalog exceeds 16 MiB");
+        *self.data.write().unwrap() = Arc::new(Data { hls: old.hls.clone(), control: old.control.clone(), root: old.root.clone(), token: old.token.clone(), files, descriptions, catalog });
+        Ok(())
     }
     pub fn address(&self) -> SocketAddr {
         (std::net::Ipv4Addr::LOCALHOST, self.session.port).into()

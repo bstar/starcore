@@ -10,6 +10,7 @@ public struct SSHProfile: Codable, Equatable, Sendable {
     public var hostKeyFingerprint: String
     public var remoteExecutable: String
     public var movieDirectory: String
+    public var attachToService: Bool?
     public var projectDirectory: String?
     public init(host: String, port: Int = 22, username: String, hostKeyFingerprint: String = "", remoteExecutable: String, movieDirectory: String, projectDirectory: String? = nil) {
         self.host=host; self.port=port; self.username=username; self.hostKeyFingerprint=hostKeyFingerprint; self.remoteExecutable=remoteExecutable; self.movieDirectory=movieDirectory; self.projectDirectory=projectDirectory
@@ -17,6 +18,7 @@ public struct SSHProfile: Codable, Equatable, Sendable {
     public func command() throws -> String {
         guard !host.isEmpty, !host.hasPrefix("-"), !username.isEmpty, (1...65535).contains(port), !remoteExecutable.isEmpty, !movieDirectory.isEmpty,
               [host,username,remoteExecutable,movieDirectory].allSatisfy({ !$0.contains("\0") && !$0.contains("\n") && !$0.contains("\r") }) else { throw SSHError.invalidProfile }
+        if attachToService == true { return [remoteExecutable,"attach"].map(Self.quote).joined(separator:" ") }
         var args=[remoteExecutable,"--tv-serve","--movies",movieDirectory]
         if let project=projectDirectory, !project.isEmpty {
             guard !project.contains("\0"), !project.contains("\n"), !project.contains("\r") else { throw SSHError.invalidProfile }
