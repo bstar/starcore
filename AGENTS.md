@@ -26,9 +26,9 @@ takes a release tag and regenerated git-sourced Cargo.lock in
 a separate dependency commit. Never commit a path-patched lockfile. An API
 change requires a minor version on 0.x; compatible fixes use a patch version.
 
-Before changing a signature, read all four consumers. The active AMP checkout
-on the Linux workstation is `../staramp-graphical`; the other checkouts are
-`../starfold`, `../starcord` and `../starwire`. Consumer CI tests disposable
+Before changing a signature, read all four consumers. The consumer checkouts
+on the Linux workstation are `../staramp`, `../starfold`, `../starcord` and
+`../starwire`. Consumer CI tests disposable
 copies against the candidate KIT checkout using `scripts/check-consumer.py`.
 
 ## Framework work program
