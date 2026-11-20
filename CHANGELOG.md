@@ -8,6 +8,15 @@ On 0.x, an API change is a minor bump and a fix is a patch.
 
 ## [Unreleased]
 
+## [0.25.2] - 2026-11-20
+
+### Changed
+
+- A quiet session (no live producer active) now honours a controller's
+  `tick_interval` above the 33 ms default, up to 250 ms, so idle controllers
+  can sleep longer. The default is unchanged and input still wakes a session
+  immediately.
+
 ## [0.25.1] - 2026-11-19
 
 ### Fixed
