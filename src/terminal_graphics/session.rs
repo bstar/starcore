@@ -13,6 +13,8 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 use super::protocol::*;
 
 /// Implemented by application UI controllers, never by the renderer.
+/// The session tick while no live producer is active.
+const QUIET_TICK: Duration = Duration::from_millis(33);
 pub trait Controller {
     fn tick(&mut self);
     /// Quiet applications can avoid rebuilding unchanged scenes. Input and
@@ -22,9 +24,11 @@ pub trait Controller {
     }
     /// Event-driven adapters return false while their retained UI is unchanged.
     /// Legacy controllers retain their existing periodic scene behavior.
-    /// Poll producers independently of the chrome redraw cadence.
+    /// Poll producers independently of the chrome redraw cadence. Live
+    /// presentation can shorten this; while the session is otherwise quiet, a
+    /// value above the default (up to 250 ms) lets an idle controller sleep.
     fn tick_interval(&self) -> Duration {
-        Duration::from_millis(33)
+        QUIET_TICK
     }
     fn scene_dirty(&self) -> bool {
         true
@@ -792,9 +796,16 @@ fn serve_with_policy(
         {
             Duration::from_millis(8)
         } else {
-            Duration::from_millis(33)
+            QUIET_TICK
         };
-        let interval = interval.min(controller.tick_interval());
+        // Live producers may only shorten the tick. In the quiet state a
+        // controller may also lengthen it (up to 250 ms) when it has nothing to
+        // poll; input and acknowledgements still wake it immediately.
+        let interval = if interval == QUIET_TICK {
+            controller.tick_interval().min(Duration::from_millis(250))
+        } else {
+            interval.min(controller.tick_interval())
+        };
         let remaining = interval.saturating_sub(start.elapsed());
         // Input and presentation acknowledgements wake the controller immediately.
         // Keep the timer for worker updates and accepting new attachments.
