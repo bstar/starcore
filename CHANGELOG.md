@@ -8,6 +8,15 @@ On 0.x, an API change is a minor bump and a fix is a patch.
 
 ## [Unreleased]
 
+### Added
+
+- `Controller::wake` lets a controller hand the session a channel it signals
+  when it has output ready, such as a terminal frame produced on another
+  thread. The session then ticks immediately instead of at its next interval.
+  The default returns `None`, keeping existing controllers unchanged. In
+  STAR/FLUX this took keystroke-to-frame latency from about 18 ms to about
+  2 ms.
+
 ## [0.25.2] - 2026-11-20
 
 ### Changed

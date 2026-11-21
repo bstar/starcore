@@ -33,6 +33,12 @@ pub trait Controller {
     fn scene_dirty(&self) -> bool {
         true
     }
+    /// A channel the controller signals when it has new output (for example a
+    /// terminal frame produced on another thread). The session then ticks at
+    /// once instead of at its next interval. Called once per session.
+    fn wake(&mut self) -> Option<crossbeam_channel::Receiver<()>> {
+        None
+    }
     fn attached(&mut self) {}
     fn capabilities(&mut self, _capabilities: super::capabilities::Capabilities) {}
     fn supports_presentation_switch(&self) -> bool {
@@ -377,6 +383,7 @@ fn serve_with_policy(
         scene.interaction,
         scene.scroll_interaction,
     )]);
+    let wake = controller.wake();
     loop {
         let start = Instant::now();
         match listener.accept() {
@@ -817,10 +824,20 @@ fn serve_with_policy(
                 wait.send(&p.control);
             } else {
                 wait.recv(&p.messages);
+                // Controller output wakes the session too; a full control
+                // queue must drain first, so it is not watched then.
+                if let Some(wake) = &wake {
+                    wait.recv(wake);
+                }
             }
             let _ = wait.ready_timeout(remaining);
+        } else if let Some(wake) = &wake {
+            let _ = wake.recv_timeout(remaining);
         } else {
             std::thread::sleep(remaining);
+        }
+        if let Some(wake) = &wake {
+            while wake.try_recv().is_ok() {}
         }
     }
 }
