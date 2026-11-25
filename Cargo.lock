@@ -3039,7 +3039,7 @@ dependencies = [
 
 [[package]]
 name = "starcore"
-version = "0.25.2"
+version = "0.25.3"
 dependencies = [
  "anyhow",
  "base64 0.22.1",

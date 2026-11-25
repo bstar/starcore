@@ -8,6 +8,8 @@ On 0.x, an API change is a minor bump and a fix is a patch.
 
 ## [Unreleased]
 
+## [0.25.3] - 2026-11-25
+
 ### Added
 
 - `Controller::wake` lets a controller hand the session a channel it signals
