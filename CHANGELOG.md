@@ -8,6 +8,16 @@ On 0.x, an API change is a minor bump and a fix is a patch.
 
 ## [Unreleased]
 
+### Added
+
+- `theme = "system"` follows the active Omarchy theme when there is no Stylix
+  palette. `theme::system` reads Omarchy's `colors.toml` for the current theme,
+  maps its colour roles onto base16 and uses the theme's declared light or dark
+  mode. Omarchy rewrites that file on every theme switch, so an application
+  that checks the system theme again picks up the change.
+  `theme::system::parse_omarchy` is public for applications that watch the file
+  themselves.
+
 ## [0.25.3] - 2026-11-25
 
 ### Added

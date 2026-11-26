@@ -111,7 +111,8 @@ static REGISTRY: LazyLock<Registry<Theme>> = LazyLock::new(|| Registry::new(PATH
 `resolve_named` tries, in order:
 
 1. `"system"` or `"auto"` — the desktop's own scheme, via Stylix's
-   `palette.json`/`palette.yaml` (`theme::system`).
+   `palette.json`/`palette.yaml`, or else the active Omarchy theme's
+   `colors.toml` and its light or dark mode (`theme::system`).
 2. `<config dir>/themes/<name>.toml` — a user theme, which overrides a
    built-in of the same id.
 3. A built-in.

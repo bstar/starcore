@@ -23,7 +23,7 @@ adoption, a standalone starter and public API stability gates are in progress.
   skin loader. Quiet workspace panels, aligned property fields and time rulers
   share those palette roles for larger editors. See [the native style API](docs/native-style.md).
 - **Themes** — a `[meta]`/`[base16]`/role-table file format, sixteen built-in
-  schemes, a derivation chain that fills in every role a file omits, Stylix and
+  schemes, a derivation chain that fills in every role a file omits, Stylix, Omarchy and
   COSMIC detection, and Winamp `.wsz` skin import. An application extends the
   core palette with tables of its own; a theme file may carry several
   applications' tables at once. The shared Alt+T [theme picker](docs/themes.md#shared-picker)
