@@ -8,6 +8,8 @@ On 0.x, an API change is a minor bump and a fix is a patch.
 
 ## [Unreleased]
 
+## [0.25.4] - 2026-11-26
+
 ### Added
 
 - `theme = "system"` follows the active Omarchy theme when there is no Stylix
