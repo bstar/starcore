@@ -8,6 +8,18 @@ On 0.x, an API change is a minor bump and a fix is a patch.
 
 ## [Unreleased]
 
+### Added
+
+- `ServerMessage::FocusCanvas` lets an application hand a live canvas the
+  keyboard, for example after a mouse click outside it. A client that can take
+  it reports `canvas_focus_v1`, and the session drops the message for peers
+  that do not, so older frontends never see an unknown message.
+
+### Changed
+
+- A client key hook may consume a key press it handled itself, instead of the
+  press always reaching the application as well.
+
 ## [0.25.4] - 2026-11-26
 
 ### Added

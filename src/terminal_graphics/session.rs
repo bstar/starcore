@@ -163,6 +163,7 @@ struct Peer {
     presentation: PresentationBudget,
     presentation_switch: bool,
     open_urls_v1: bool,
+    canvas_focus_v1: bool,
 }
 impl Peer {
     fn new(socket: UnixStream) -> Result<Self> {
@@ -234,6 +235,7 @@ impl Peer {
             presentation: PresentationBudget::default(),
             presentation_switch: false,
             open_urls_v1: false,
+            canvas_focus_v1: false,
         })
     }
     fn control(&self, message: ServerMessage) -> bool {
@@ -524,6 +526,7 @@ fn serve_with_policy(
                     canvas_video_active = false;
                     controller.attached();
                     p.open_urls_v1 = capabilities.is_some_and(|cap| cap.open_urls_v1);
+                    p.canvas_focus_v1 = capabilities.is_some_and(|cap| cap.canvas_focus_v1);
                     if let Some(capabilities) = capabilities {
                         local_frames = capabilities.local_frames;
                         streamed_frames = capabilities.streamed_frames && !local_frames;
@@ -763,6 +766,9 @@ fn serve_with_policy(
                         continue;
                     }
                 }
+                if matches!(effect, ServerMessage::FocusCanvas { .. }) && !p.canvas_focus_v1 {
+                    continue;
+                }
                 let wire = matches!(effect, ServerMessage::Osc72 { .. });
                 if let ServerMessage::Osc72 { id, .. } = &mut effect {
                     effect_id += 1;
@@ -890,6 +896,7 @@ mod tests {
             presentation: PresentationBudget::default(),
             presentation_switch: false,
             open_urls_v1: false,
+            canvas_focus_v1: false,
         };
         let mut acknowledged = Vec::new();
         for burst in 0..16 {

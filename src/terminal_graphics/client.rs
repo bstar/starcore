@@ -803,6 +803,7 @@ fn run_impl(
     capabilities.presentation_switch = preference.is_some();
     let environment = crate::presentation::Environment::detect();
     capabilities.open_urls_v1 = !environment.ssh && super::frontend_actions::available();
+    capabilities.canvas_focus_v1 = true;
     let mut url_actions = super::frontend_actions::Frontend::new(capabilities.open_urls_v1);
     let profile = capabilities.profile(
         &environment,
@@ -1086,6 +1087,12 @@ fn run_impl(
                         })?;
                     }
                     persist_generation = Some(size.generation);
+                }
+                // Applied by the focus retry below once the scene has the canvas.
+                ServerMessage::FocusCanvas { canvas } => {
+                    if focused {
+                        pending_canvas_focus = Some(canvas);
+                    }
                 }
                 ServerMessage::PointerPolicy { canvas, hidden } => {
                     if capabilities.pointer_hiding {
@@ -1922,7 +1929,9 @@ fn run_impl(
                             && k.code == KeyCode::Char('r')
                         {
                             reconnect = Instant::now();
-                        } else {
+                        } else if input.is_none() {
+                            // An application's event callback that answers a
+                            // key press handles it: its input goes instead.
                             input = Some(Input::Key {
                                 code: key(k.code),
                                 modifiers: k.modifiers.bits(),

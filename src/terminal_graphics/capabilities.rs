@@ -50,6 +50,9 @@ pub struct Capabilities {
     /// HTTP/HTTPS links open on the attaching computer, never on the host.
     #[serde(default)]
     pub open_urls_v1: bool,
+    /// The application may give a live canvas the keyboard (`FocusCanvas`).
+    #[serde(default)]
+    pub canvas_focus_v1: bool,
     /// Local Kitty/Cocoa mouse visibility, separate from captured video pixels.
     #[serde(default)]
     pub pointer_hiding: bool,
@@ -186,6 +189,7 @@ impl Capabilities {
                 && std::env::var_os("KITTY_WINDOW_ID").is_some(),
             file_exports: false,
             open_urls_v1: false,
+            canvas_focus_v1: false,
             local_frames: false,
             streamed_frames: false,
             lossless_frames: true,
@@ -310,6 +314,7 @@ mod tests {
         assert!(!old.surface_hover);
         assert!(!old.pixel_mouse);
         assert!(!old.open_urls_v1);
+        assert!(!old.canvas_focus_v1);
     }
     #[test]
     fn image_support_does_not_claim_pixel_pointer_precision() {
@@ -320,6 +325,7 @@ mod tests {
                 && std::env::var_os("KITTY_WINDOW_ID").is_some(),
             file_exports: false,
             open_urls_v1: false,
+            canvas_focus_v1: false,
             local_frames: false,
             streamed_frames: false,
             lossless_frames: true,

@@ -436,6 +436,12 @@ pub enum ServerMessage {
     CanvasPixels {
         frame: super::pixel_stream::Pixels,
     },
+    /// Give keyboard input to a live canvas, as a click on it would. Send only
+    /// after the frontend advertises `canvas_focus_v1`; the window must have
+    /// focus, and menus or dialogs keep the keyboard.
+    FocusCanvas {
+        canvas: String,
+    },
     /// Negotiated frontend-only mouse visibility over a named live canvas.
     PointerPolicy {
         canvas: String,
